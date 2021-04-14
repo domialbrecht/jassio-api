@@ -14,7 +14,7 @@ const http = require("http");
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: "http://localhost:8080",
+    origin: ["http://localhost:8080", "https://sirfilior.com"],
     methods: ["GET", "POST"],
   },
 });
@@ -36,7 +36,7 @@ app.use(express.static("public"));
 //---------------------------------------------
 //Start CORS Setup
 //---------------------------------------------
-var allowedOrigins = ["http://localhost:8080"];
+var allowedOrigins = ["http://localhost:8080", "https://sirfilior.com/"];
 app.use(
   cors({
     origin: function (origin, callback) {
