@@ -25,8 +25,8 @@
     "multer": "^1.4.2",
     "pg": "^8.3.3",
     "qs": "^6.9.4",
-    "sequelize": "^6.3.5",
     "serve-favicon": "^2.5.0",
+    "socket.io": "^4.0.1",
     "winston": "^3.3.3"
   },
   "devDependencies": {}

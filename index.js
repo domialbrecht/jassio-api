@@ -10,13 +10,33 @@ const { handleError } = require("./util/error");
 const isProduction = config.ENV === "production";
 
 const app = express();
+const http = require("http");
+const server = http.createServer(app);
+const io = require("socket.io")(server, {
+  cors: {
+    origin: "http://localhost:8080",
+    methods: ["GET", "POST"],
+  },
+});
+
+const registerSockets = require("./sockets");
+const onConnection = (socket) => {
+  console.log("A user connected");
+  socket.on("disconnect", () => {
+    console.log("user disconnected");
+  });
+  registerSockets(io, socket);
+};
+
+io.on("connection", onConnection);
+
 app.use(favicon(__dirname + "/public/images/favicon.ico"));
 app.use(express.static("public"));
 
 //---------------------------------------------
 //Start CORS Setup
 //---------------------------------------------
-var allowedOrigins = ["http://localhost:3000"];
+var allowedOrigins = ["http://localhost:8080"];
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -65,4 +85,4 @@ app.use(function (err, req, res, next) {
 
 // Start APP
 logger.log("info", `${new Date()} - Running, Listening on ${config.PORT}`);
-app.listen(config.PORT, () => console.log(`Listening on ${config.PORT}`));
+server.listen(config.PORT, () => console.log(`Listening on ${config.PORT}`));
