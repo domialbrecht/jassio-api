@@ -1,6 +1,6 @@
 # Jass.io
 
-API: [![Heroku](http://heroku-badge.herokuapp.com/?app=jassio-api&style=flat)]
+![Heroku](http://heroku-badge.herokuapp.com/?app=jassio-api&style=flat)
 
 ## Development
 
