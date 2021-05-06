@@ -1,9 +1,9 @@
 {
     "[javascript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "vscode.typescript-language-features"
     },
     "[typescript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "vscode.typescript-language-features"
     },
     "editor.formatOnSave": true,
     "vetur.validation.template": false,

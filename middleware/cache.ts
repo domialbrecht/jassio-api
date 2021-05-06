@@ -1,5 +1,5 @@
-const flatCache = require("flat-cache");
-const path = require("path");
+import flatCache from "flat-cache";
+import path from "path";
 const cache = flatCache.load(path.join(`${__dirname}/../cache/dbCache`));
 const duration = 1000 * 60 * 30; //Keep cache alive for 15min, this allows twice check for new materials
 
@@ -39,4 +39,4 @@ const flatCacheMiddleware = (req, res, next) => {
   }
 };
 
-module.exports = flatCacheMiddleware;
+export default flatCacheMiddleware;

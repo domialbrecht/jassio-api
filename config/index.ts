@@ -4,4 +4,6 @@ const config = {
   CACHE_LIFETIME_MIN: 60,
 };
 
-module.exports = config;
+export default config;
+
+

@@ -1,4 +1,5 @@
 class ErrorHandler extends Error {
+  statusCode: any;
   constructor(statusCode, message) {
     super();
     this.statusCode = statusCode;
@@ -15,7 +16,4 @@ const handleError = (err, res) => {
   });
 };
 
-module.exports = {
-  ErrorHandler,
-  handleError,
-};
+export {ErrorHandler, handleError}
