@@ -65,7 +65,7 @@ const onConnection = async (socket: GameSocket) => {
       name: gs.username,
     }
   })
-  socket.emit("players", team);
+  io.to(socket.roomKey).emit('players', team);
   const debugUsers = new Map();
   for (let [id, socket] of io.of("/").sockets) {
     const s = <GameSocket>socket;
@@ -84,7 +84,7 @@ const onConnection = async (socket: GameSocket) => {
         name: gs.username,
       }
     })
-    socket.emit("players", team);
+    io.to(socket.roomKey).emit('players', team);
   });
   socketHandler(io, socket);
 };
