@@ -62,6 +62,7 @@ const onConnection = async (socket: GameSocket) => {
     let gs = <GameSocket><unknown>s;
     return {
       id: gs.id,
+      isHost: gs.isHost,
       name: gs.username,
     }
   })
@@ -76,15 +77,20 @@ const onConnection = async (socket: GameSocket) => {
     debugUsers.delete(socket.id)
     console.log('user disconnected');
     console.log(debugUsers);
-    const so = await io.in(socket.roomKey).fetchSockets();
-    const team = so.map((s) => {
-      let gs = <GameSocket><unknown>s;
-      return {
-        id: gs.id,
-        name: gs.username,
-      }
-    })
-    io.to(socket.roomKey).emit('players', team);
+    if (socket.isHost) {
+      io.to(socket.roomKey).emit('abandoned');
+    } else {
+      const so = await io.in(socket.roomKey).fetchSockets();
+      const team = so.map((s) => {
+        let gs = <GameSocket><unknown>s;
+        return {
+          id: gs.id,
+          isHost: gs.isHost,
+          name: gs.username,
+        }
+      })
+      io.to(socket.roomKey).emit('players', team);
+    }
   });
   socketHandler(io, socket);
 };
