@@ -12,19 +12,17 @@ import { socketHandler, GameSocket } from "./sockets";
 
 import crypto from "crypto";
 const randomId = () => crypto.randomBytes(8).toString("hex");
-import Game from "./game/game";
-import GameStore from "./game/gameStore"
+import { GAMES, Game } from "./game/game";
+import { GameStore } from "./game/gameStore"
 
 const isProduction = config.ENV === "production";
 const app = express();
 const server = createServer(app);
-const games: Game[] = [];
-
 const io = new Server(server, {
   cors: {
     origin: [
       "https://admin.socket.io",
-      "http://localhost:3000",
+      "http://localhost:3333",
       "https://sirfilior.com",
     ],
   },
@@ -54,11 +52,15 @@ io.use((socket: GameSocket, next) => {
 
 const onConnection = async (socket: GameSocket) => {
   if (socket.isHost) {
+    GAMES.set(socket.roomKey, new Game(socket.roomKey, socket))
     socket.emit("hosted", socket.roomKey);
+  } else {
+    GAMES.get(socket.roomKey).addPlayer(socket)
+    console.log(GAMES.get(socket.roomKey));
+    socket.emit('initialSettings', GAMES.get(socket.roomKey).getSettings())
   }
-  socket.join(socket.roomKey);
-  const so = await io.in(socket.roomKey).fetchSockets();
-  const team = so.map((s) => {
+  await socket.join(socket.roomKey);
+  const team = GAMES.get(socket.roomKey).getPlayers().map((s) => {
     let gs = <GameSocket><unknown>s;
     return {
       id: gs.id,
@@ -67,21 +69,30 @@ const onConnection = async (socket: GameSocket) => {
     }
   })
   io.to(socket.roomKey).emit('players', team);
+
+
   const debugUsers = new Map();
   for (let [id, socket] of io.of("/").sockets) {
     const s = <GameSocket>socket;
     debugUsers.set(id, s.username);
   }
   console.log(debugUsers);
+
+
   socket.on('disconnect', async () => {
+
+
     debugUsers.delete(socket.id)
     console.log('user disconnected');
     console.log(debugUsers);
+
+
     if (socket.isHost) {
       io.to(socket.roomKey).emit('abandoned');
+      GAMES.delete(socket.roomKey);
     } else {
-      const so = await io.in(socket.roomKey).fetchSockets();
-      const team = so.map((s) => {
+      GAMES.get(socket.roomKey).removePlayer(socket.id);
+      const team = GAMES.get(socket.roomKey).getPlayers().map((s) => {
         let gs = <GameSocket><unknown>s;
         return {
           id: gs.id,

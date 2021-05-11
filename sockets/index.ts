@@ -1,4 +1,5 @@
 import { Server, Socket } from "socket.io";
+import { GAMES } from "../game/game"
 
 interface GameSocket extends Socket {
   username?: string,
@@ -7,11 +8,10 @@ interface GameSocket extends Socket {
 }
 
 const socketHandler = (io: Server, socket: GameSocket) => {
-  const log = (payload) => {
-    console.log(payload);
-    io.emit("chat message", payload);
-  };
-  socket.on("chat message", log);
+  socket.on("settingChanged", (settings) => {
+    GAMES.get(socket.roomKey).setSettings(settings)
+    io.to(socket.roomKey).emit('newSettings', settings);
+  });
 };
 
 export { socketHandler, GameSocket };

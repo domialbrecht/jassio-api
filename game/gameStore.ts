@@ -1,6 +1,6 @@
 import flatCache from "flat-cache";
 import path from "path";
-import Game from "./game";
+import { Game } from "./game";
 const duration = 1000 * 60 * 60 * 24;
 const autosaveInterval = 1000 * 60 * 5;
 
@@ -33,4 +33,4 @@ class GameStore {
   }
 }
 
-export default GameStore;
+export { GameStore };
