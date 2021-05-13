@@ -1,4 +1,5 @@
 import { Server, Socket } from "socket.io";
+import { Card, Deck, DeckType, deckFactory } from "./deck"
 const GAMES: Map<string, Game> = new Map()
 
 type GameSettings = {
@@ -6,21 +7,30 @@ type GameSettings = {
   enableWise: boolean,
 }
 
+type Player = {
+  socket: Socket,
+  hand: Card[]
+}
+
 class Game {
   roomKey: string
-  game: Game
   settings: GameSettings
-  players: Map<string, Socket> = new Map()
+  players: Map<string, Player> = new Map()
+  deck: Deck
   constructor(key, host: Socket) {
     this.roomKey = key
-    this.players.set(host.id, host)
+    this.players.set(host.id, { socket: host, hand: [] })
     this.settings = { winAmount: 1000, enableWise: true }
   }
+  setRoundType(type: DeckType) {
+    this.deck = deckFactory(type)
+    console.log(this.deck);
+  }
   getPlayers(): Socket[] {
-    return Array.from(this.players.values());
+    return Array.from(this.players.values()).map((p) => p.socket);
   }
   addPlayer(player: Socket) {
-    this.players.set(player.id, player)
+    this.players.set(player.id, { hand: [], socket: player })
   }
   removePlayer(id: string) {
     this.players.delete(id)

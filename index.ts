@@ -70,22 +70,22 @@ const onConnection = async (socket: GameSocket) => {
   })
   io.to(socket.roomKey).emit('players', team);
 
-
+  //FIXME: REMOVE DEBUG
   const debugUsers = new Map();
   for (let [id, socket] of io.of("/").sockets) {
     const s = <GameSocket>socket;
     debugUsers.set(id, s.username);
   }
   console.log(debugUsers);
-
+  //END DEBUG
 
   socket.on('disconnect', async () => {
 
-
+    //FIXME: REMOVE DEBUG
     debugUsers.delete(socket.id)
     console.log('user disconnected');
     console.log(debugUsers);
-
+    //END DEBUG
 
     if (socket.isHost) {
       io.to(socket.roomKey).emit('abandoned');
