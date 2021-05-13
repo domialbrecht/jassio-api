@@ -52,6 +52,9 @@ io.use((socket: GameSocket, next) => {
 
 const onConnection = async (socket: GameSocket) => {
   if (socket.isHost) {
+    let game = new Game(socket.roomKey, socket)
+    game.setRoundType(DeckType.TRUMPF_HEART)
+    game.deck.buildDeck();
     GAMES.set(socket.roomKey, new Game(socket.roomKey, socket))
     socket.emit("hosted", socket.roomKey);
   } else {
@@ -115,6 +118,7 @@ app.use(express.static("public"));
 //Setup all routes
 //---------------------------------------------
 import router from "./routes";
+import { DeckType } from "./game/deck";
 app.use(router);
 //---------------------------------------------
 

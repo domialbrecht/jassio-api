@@ -12,23 +12,23 @@ function shuffle(array) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
   }
+  return array
 }
 
 const CARDS = ['6', '7', '8', '9', '10', 'jack', 'queen', 'king', '1']
 const TCARDS = ['6', '7', '8', '10', 'queen', 'king', '1', '9', 'jack']
+const suits = ['heart', 'diamond', 'spade', 'club'] as const
+type Suit = typeof suits[number]
 
-enum Suit {
-  HEART = 'heart',
-  DIAMOND = 'diamond',
-  SPADE = 'spade',
-  CLUB = 'club',
-}
 
 enum DeckType {
-  UPDOWN = 1,
-  DOWNUP = 2,
-  SLALOM = 3,
-  TRUMPF = 4
+  UPDOWN,
+  DOWNUP,
+  SLALOM,
+  TRUMPF_HEART,
+  TRUMPF_DIAMOND,
+  TRUMPF_SPADE,
+  TRUMPF_CLUB,
 }
 
 interface Card {
@@ -39,40 +39,41 @@ interface Card {
 }
 
 abstract class Deck {
-  cards: Card[]
+  cards: Card[] = []
   constructor() {
-    this.deckBuilder()
   }
   distribute(): Array<Card[]> {
-    let d = chunk(shuffle(this.cards), 4)
-    return d
+    if (!this.cards || this.cards.length <= 0) {
+      throw "MISSING CARDS; DECK INIT FAILED"
+    }
+    return chunk(shuffle(this.cards), 9)
   }
-  abstract deckBuilder(): void
+  addCards(ca: string[]) {
+    suits.forEach((s, si) => {
+      ca.forEach((c, i) => {
+        this.cards.push({ id: (si * 10) + i + 1, display: `${s}_${c}`, suit: s, value: i + 1 })
+      })
+    })
+  }
+  abstract buildDeck(): void
 }
 
 class UpdownDeck extends Deck {
   constructor() {
     super()
   }
-  deckBuilder() {
-    for (const suit in [Suit.HEART, Suit.DIAMOND, Suit.SPADE, Suit.CLUB]) {
-      CARDS.forEach((c, i) => {
-        this.cards.push({ id: i + 1, display: `${suit}_${c}`, suit: Suit[suit], value: i + 1 })
-      })
-    }
+  buildDeck() {
+    this.addCards(CARDS);
   }
 }
+
 
 class DownupDeck extends Deck {
   constructor() {
     super()
   }
-  deckBuilder() {
-    for (const suit in [Suit.HEART, Suit.DIAMOND, Suit.SPADE, Suit.CLUB]) {
-      CARDS.forEach((c, i) => {
-        this.cards.push({ id: i + 1, display: `${suit}_${c}`, suit: Suit[suit], value: 10 - (i + 1) })
-      })
-    }
+  buildDeck() {
+    this.addCards(CARDS.reverse());
   }
 }
 
@@ -84,20 +85,23 @@ class SlamomDeck extends UpdownDeck {
 }
 
 class TrumpfDeck extends Deck {
-  trumpf: Suit = Suit.HEART
-  constructor() {
+  trumpf: Suit
+  constructor(type: Suit) {
     super()
+    this.trumpf = type
   }
-  deckBuilder() {
-    for (const suit in [Suit.HEART, Suit.DIAMOND, Suit.SPADE, Suit.CLUB]) {
+  buildDeck() {
+    suits.forEach((s, si) => {
       let lc = CARDS
-      if (suit === this.trumpf) {
+      let tBonus = 0
+      if (s === this.trumpf) {
         lc = TCARDS
+        tBonus = 10
       }
       lc.forEach((c, i) => {
-        this.cards.push({ id: i + 1, display: `${suit}_${c}`, suit: Suit[suit], value: 10 - (i + 1) })
+        this.cards.push({ id: (si * 10) + i + 1, display: `${s}_${c}`, suit: s, value: (tBonus + i + 1) })
       })
-    }
+    })
   }
 }
 
@@ -109,8 +113,14 @@ function deckFactory(type: DeckType): Deck {
       return new DownupDeck();
     case DeckType.SLALOM:
       return new SlamomDeck();
-    case DeckType.TRUMPF:
-      return new TrumpfDeck();
+    case DeckType.TRUMPF_HEART:
+      return new TrumpfDeck('heart');
+    case DeckType.TRUMPF_DIAMOND:
+      return new TrumpfDeck('diamond');
+    case DeckType.TRUMPF_SPADE:
+      return new TrumpfDeck('spade');
+    case DeckType.TRUMPF_CLUB:
+      return new TrumpfDeck('club');
   }
 }
 
