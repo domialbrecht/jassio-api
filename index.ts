@@ -52,9 +52,6 @@ io.use((socket: GameSocket, next) => {
 
 const onConnection = async (socket: GameSocket) => {
   if (socket.isHost) {
-    let game = new Game(socket.roomKey, socket)
-    game.setRoundType(DeckType.TRUMPF_HEART)
-    game.deck.buildDeck();
     GAMES.set(socket.roomKey, new Game(socket.roomKey, socket))
     socket.emit("hosted", socket.roomKey);
   } else {
@@ -94,6 +91,7 @@ const onConnection = async (socket: GameSocket) => {
       io.to(socket.roomKey).emit('abandoned');
       GAMES.delete(socket.roomKey);
     } else {
+      if (!GAMES.get(socket.roomKey)) return; //Game abandoned
       GAMES.get(socket.roomKey).removePlayer(socket.id);
       const team = GAMES.get(socket.roomKey).getPlayers().map((s) => {
         let gs = <GameSocket><unknown>s;

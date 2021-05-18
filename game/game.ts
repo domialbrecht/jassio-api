@@ -21,10 +21,17 @@ class Game {
     this.roomKey = key
     this.players.set(host.id, { socket: host, hand: [] })
     this.settings = { winAmount: 1000, enableWise: true }
+    //Initial deck for picking starter player
+    this.setRoundType(DeckType.TRUMPF_HEART)
+    this.deck.buildDeck();
+    //FIXME: REMOVE ME
+    console.log(this.deck);
+  }
+  getPlayerHands(): Array<Card[]> {
+    return this.deck.distribute()
   }
   setRoundType(type: DeckType) {
     this.deck = deckFactory(type)
-    console.log(this.deck);
   }
   getPlayers(): Socket[] {
     return Array.from(this.players.values()).map((p) => p.socket);
