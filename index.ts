@@ -60,7 +60,7 @@ const onConnection = async (socket: GameSocket) => {
     socket.emit('initialSettings', GAMES.get(socket.roomKey).getSettings())
   }
   await socket.join(socket.roomKey);
-  const team = GAMES.get(socket.roomKey).getPlayers().map((s) => {
+  const team = GAMES.get(socket.roomKey).getPlayersSocket().map((s) => {
     let gs = <GameSocket><unknown>s;
     return {
       id: gs.id,
@@ -93,7 +93,7 @@ const onConnection = async (socket: GameSocket) => {
     } else {
       if (!GAMES.get(socket.roomKey)) return; //Game abandoned
       GAMES.get(socket.roomKey).removePlayer(socket.id);
-      const team = GAMES.get(socket.roomKey).getPlayers().map((s) => {
+      const team = GAMES.get(socket.roomKey).getPlayersSocket().map((s) => {
         let gs = <GameSocket><unknown>s;
         return {
           id: gs.id,
