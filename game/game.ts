@@ -23,7 +23,7 @@ class Game {
     this.roomKey = key
     this.players.set(host.id, { socket: host, hand: [], shouldPlay: false })
     this.settings = { winAmount: 1000, enableWise: true }
-    this.setRoundType(DeckType.TRUMPF_HEART) //Initial just for first play
+    this.deck = this.createDeck(DeckType.TRUMPF_HEART) //Initial just for first play
     this.deck.buildDeck();
   }
   startGame(): void {
@@ -32,8 +32,20 @@ class Game {
   getPlayerCards(): Array<Card[]> {
     return this.deck.distribute()
   }
+  createDeck(type: DeckType): Deck {
+    return deckFactory(type)
+  }
   setRoundType(type: DeckType) {
-    this.deck = deckFactory(type)
+    //HACK:: This is kinda bad, rework deck build and redistribute logic
+    const deckOfRoundType = this.createDeck(type)
+    deckOfRoundType.buildDeck()
+    this.players.forEach(p => {
+      p.hand.forEach(c => {
+        c.value = deckOfRoundType.getCardValue(c.id)
+        console.log("--------");
+        console.log(c);
+      })
+    })
   }
   getPlayers(): Player[] {
     return Array.from(this.players.values());

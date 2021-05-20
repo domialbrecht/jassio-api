@@ -55,6 +55,9 @@ abstract class Deck {
       })
     })
   }
+  getCardValue(id: number): number {
+    return this.cards.find(c => c.id == id).value
+  }
   abstract buildDeck(): void
 }
 
