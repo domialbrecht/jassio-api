@@ -1,11 +1,17 @@
 import { Server, Socket } from "socket.io";
 import { DeckType } from "../game/deck";
-import { GAMES } from "../game/game"
+import { Game, GAMES } from "../game/game"
 
 interface GameSocket extends Socket {
   username?: string,
   isHost?: boolean,
   roomKey?: string,
+  place?: number
+}
+
+type TeamInfo = {
+  pid: string,
+  teamRed: number
 }
 
 //HACK: Implement shared enum DeckType for Client, add DeckType.toString in Client
@@ -38,23 +44,48 @@ const stringTypeToDeckType = (type: string): DeckType => {
   }
 }
 
+const emitPlayers = (io: Server, game: Game, roomKey: string) => {
+  const team = game.getPlayersSocket().map((s) => {
+    let gs = <GameSocket><unknown>s;
+    return {
+      id: gs.id,
+      isHost: gs.isHost,
+      name: gs.username,
+      place: gs.place
+    }
+  })
+  io.to(roomKey).emit('players', team);
+}
+
 const socketHandler = (io: Server, socket: GameSocket) => {
   socket.on("settingChanged", (settings) => {
     GAMES.get(socket.roomKey).setSettings(settings)
     io.to(socket.roomKey).emit('newSettings', settings);
   });
+  socket.on("playerteamchange", (pid: string, newTeam: number) => {
+    const game = GAMES.get(socket.roomKey)
+    game.players.get(pid).place = newTeam
+    if (game.teamSwapLive) {
+      emitPlayers(io, game, socket.roomKey)
+      game.teamSwapLive = false
+    } else {
+      game.teamSwapLive = true
+    }
+
+  })
   socket.on("startGame", () => {
     const game = GAMES.get(socket.roomKey)
     game.startGame()
     io.to(socket.roomKey).emit('started');
     const hands = game.getPlayerCards();
-    console.log(hands);
     Array.from(game.players.values()).forEach((p, i) => {
       p.hand = hands[i]
       p.socket.emit('getCards', hands[i])
       hands[i].forEach(c => {
-        p.shouldPlay = true
-        if (c.value === 15) p.socket.emit('turnselect')
+        if (c.value === 25) {
+          p.socket.emit('turnselect')
+          p.shouldPlay = true
+        }
       })
     })
     console.log(game.players);
@@ -66,7 +97,13 @@ const socketHandler = (io: Server, socket: GameSocket) => {
     io.to(socket.roomKey).emit("typegotselected", type)
   })
   socket.on("cardPlayed", (id: number) => {
-    console.log(id);
+    const game = GAMES.get(socket.roomKey)
+    let currentStich = game.getCurrentStich()
+    game.playCard(id, socket.id)
+    if (currentStich.length >= 4) {
+
+    }
+
   })
 };
 

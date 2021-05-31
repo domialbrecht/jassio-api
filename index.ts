@@ -55,7 +55,8 @@ const onConnection = async (socket: GameSocket) => {
     GAMES.set(socket.roomKey, new Game(socket.roomKey, socket))
     socket.emit("hosted", socket.roomKey);
   } else {
-    GAMES.get(socket.roomKey).addPlayer(socket)
+    let game = GAMES.get(socket.roomKey)
+    game.addPlayer(socket, game.getPlayers().length)
     console.log(GAMES.get(socket.roomKey));
     socket.emit('initialSettings', GAMES.get(socket.roomKey).getSettings())
   }
@@ -66,6 +67,7 @@ const onConnection = async (socket: GameSocket) => {
       id: gs.id,
       isHost: gs.isHost,
       name: gs.username,
+      place: GAMES.get(socket.roomKey).getPlayers().find(p => p.socket.id === gs.id).place
     }
   })
   io.to(socket.roomKey).emit('players', team);
@@ -99,6 +101,7 @@ const onConnection = async (socket: GameSocket) => {
           id: gs.id,
           isHost: gs.isHost,
           name: gs.username,
+          place: GAMES.get(socket.roomKey).getPlayers().find(p => p.socket.id === gs.id).place
         }
       })
       io.to(socket.roomKey).emit('players', team);

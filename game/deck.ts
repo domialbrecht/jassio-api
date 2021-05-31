@@ -14,7 +14,6 @@ function shuffle(array) {
   }
   return array
 }
-
 const CARDS = ['6', '7', '8', '9', '10', 'jack', 'queen', 'king', '1']
 const TCARDS = ['6', '7', '8', '10', 'queen', 'king', '1', '9', 'jack']
 const suits = ['heart', 'diamond', 'spade', 'club'] as const
