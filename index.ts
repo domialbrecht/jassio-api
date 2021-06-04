@@ -57,7 +57,7 @@ const onConnection = async (socket: GameSocket) => {
   } else {
     let game = GAMES.get(socket.roomKey)
     game.addPlayer(socket, game.getPlayers().length)
-    console.log(GAMES.get(socket.roomKey));
+    //console.log(GAMES.get(socket.roomKey));
     socket.emit('initialSettings', GAMES.get(socket.roomKey).getSettings())
   }
   await socket.join(socket.roomKey);
@@ -78,15 +78,15 @@ const onConnection = async (socket: GameSocket) => {
     const s = <GameSocket>socket;
     debugUsers.set(id, s.username);
   }
-  console.log(debugUsers);
+  //console.log(debugUsers);
   //END DEBUG
 
   socket.on('disconnect', async () => {
 
     //FIXME: REMOVE DEBUG
     debugUsers.delete(socket.id)
-    console.log('user disconnected');
-    console.log(debugUsers);
+    //console.log('user disconnected');
+    //console.log(debugUsers);
     //END DEBUG
 
     if (socket.isHost) {

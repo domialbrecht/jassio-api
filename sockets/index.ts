@@ -45,13 +45,13 @@ const stringTypeToDeckType = (type: string): DeckType => {
 }
 
 const emitPlayers = (io: Server, game: Game, roomKey: string) => {
-  const team = game.getPlayersSocket().map((s) => {
-    let gs = <GameSocket><unknown>s;
+  const team = game.getPlayersSocketAndPlace().map((s) => {
+    let gs = <GameSocket><unknown>s.socket;
     return {
       id: gs.id,
       isHost: gs.isHost,
       name: gs.username,
-      place: gs.place
+      place: s.place
     }
   })
   io.to(roomKey).emit('players', team);
@@ -62,15 +62,15 @@ const socketHandler = (io: Server, socket: GameSocket) => {
     GAMES.get(socket.roomKey).setSettings(settings)
     io.to(socket.roomKey).emit('newSettings', settings);
   });
-  socket.on("playerteamchange", (pid: string, newTeam: number) => {
+  socket.on("swapplayerteam", (p1id: string, p2id: string) => {
     const game = GAMES.get(socket.roomKey)
-    game.players.get(pid).place = newTeam
-    if (game.teamSwapLive) {
-      emitPlayers(io, game, socket.roomKey)
-      game.teamSwapLive = false
-    } else {
-      game.teamSwapLive = true
-    }
+    let p1 = game.players.get(p1id)
+    let p2 = game.players.get(p2id)
+    let p1Place = p1.place
+    let p2Place = p2.place
+    p1.place = p2Place
+    p2.place = p1Place
+    emitPlayers(io, game, socket.roomKey)
 
   })
   socket.on("startGame", () => {
@@ -81,18 +81,19 @@ const socketHandler = (io: Server, socket: GameSocket) => {
     Array.from(game.players.values()).forEach((p, i) => {
       p.hand = hands[i]
       p.socket.emit('getCards', hands[i])
+      console.log("======== PLAYER HAND ========");
       hands[i].forEach(c => {
-        if (c.value === 25) {
+        console.log(c);
+        if (c.id === 15) {
           p.socket.emit('turnselect')
+          io.to(socket.roomKey).emit('playerturn', p.place);
           p.shouldPlay = true
         }
       })
     })
-    console.log(game.players);
   })
   socket.on("typeselected", (type: string) => {
     const game = GAMES.get(socket.roomKey)
-    console.log(game.players);
     game.setRoundType(stringTypeToDeckType(type))
     io.to(socket.roomKey).emit("typegotselected", type)
   })

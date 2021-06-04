@@ -57,8 +57,6 @@ class Game {
     this.players.forEach(p => {
       p.hand.forEach(c => {
         c.value = deckOfRoundType.getCardValue(c.id)
-        console.log("--------");
-        console.log(c);
       })
     })
   }
@@ -74,6 +72,11 @@ class Game {
   }
   getPlayersSocket(): Socket[] {
     return Array.from(this.players.values()).map((p) => p.socket);
+  }
+  getPlayersSocketAndPlace(): { socket: Socket, place: number }[] {
+    return Array.from(this.players.values()).map((p) => {
+      return { socket: p.socket, place: p.place }
+    });
   }
   addPlayer(player: Socket, place: number) {
     this.players.set(player.id, { hand: [], socket: player, shouldPlay: false, place: place })
