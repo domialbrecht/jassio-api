@@ -5,6 +5,10 @@
   "[typescript]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
+  "eslint.validate": [
+    "javascript",
+    "typescript"
+  ],
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true

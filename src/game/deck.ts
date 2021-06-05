@@ -1,22 +1,22 @@
 
-const chunk = (input, size) => {
+const chunk = <Type>(input: Array<Type>, size: number): Array<Array<Type>> => {
   return input.reduce((arr, item, idx) => {
     return idx % size === 0
       ? [...arr, [item]]
-      : [...arr.slice(0, -1), [...arr.slice(-1)[0], item]];
-  }, []);
-};
+      : [...arr.slice(0, -1), [...arr.slice(-1)[0], item]]
+  }, [])
+}
 
-function shuffle(array) {
+const shuffle = <Type>(array: Array<Type>): Array<Type> => {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+    [array[i], array[j]] = [array[j], array[i]]
   }
   return array
 }
-const CARDS = ['6', '7', '8', '9', '10', 'jack', 'queen', 'king', '1']
-const TCARDS = ['6', '7', '8', '10', 'queen', 'king', '1', '9', 'jack']
-const suits = ['heart', 'diamond', 'spade', 'club'] as const
+const CARDS = ["6", "7", "8", "9", "10", "jack", "queen", "king", "1"]
+const TCARDS = ["6", "7", "8", "10", "queen", "king", "1", "9", "jack"]
+const suits = ["heart", "diamond", "spade", "club"] as const
 type Suit = typeof suits[number]
 
 
@@ -39,22 +39,23 @@ interface Card {
 
 abstract class Deck {
   cards: Card[] = []
-  constructor() {
-  }
   distribute(): Array<Card[]> {
     if (!this.cards || this.cards.length <= 0) {
       throw "MISSING CARDS; DECK INIT FAILED"
     }
     return chunk(shuffle(this.cards), 9)
   }
-  addCards(ca: string[]) {
+  addCards(ca: string[]): void {
     suits.forEach((s, si) => {
       ca.forEach((c, i) => {
         this.cards.push({ id: (si * 10) + i + 1, display: `${s}_${c}`, suit: s, value: i + 1 })
       })
     })
   }
-  getCardValue(id: number): number {
+  getCardById(id: number): Card {
+    return this.cards.find(c => c.id == id)
+  }
+  getCardValueById(id: number): number {
     return this.cards.find(c => c.id == id).value
   }
   abstract buildDeck(): void
@@ -65,7 +66,7 @@ class UpdownDeck extends Deck {
     super()
   }
   buildDeck() {
-    this.addCards(CARDS);
+    this.addCards(CARDS)
   }
 }
 
@@ -75,12 +76,12 @@ class DownupDeck extends Deck {
     super()
   }
   buildDeck() {
-    this.addCards(CARDS.reverse());
+    this.addCards(CARDS.reverse())
   }
 }
 
 class SlamomDeck extends UpdownDeck {
-  isUp: boolean = true
+  isUp = true
   constructor() {
     super()
   }
@@ -110,19 +111,19 @@ class TrumpfDeck extends Deck {
 function deckFactory(type: DeckType): Deck {
   switch (type) {
     case DeckType.UPDOWN:
-      return new UpdownDeck();
+      return new UpdownDeck()
     case DeckType.DOWNUP:
-      return new DownupDeck();
+      return new DownupDeck()
     case DeckType.SLALOM:
-      return new SlamomDeck();
+      return new SlamomDeck()
     case DeckType.TRUMPF_HEART:
-      return new TrumpfDeck('heart');
+      return new TrumpfDeck("heart")
     case DeckType.TRUMPF_DIAMOND:
-      return new TrumpfDeck('diamond');
+      return new TrumpfDeck("diamond")
     case DeckType.TRUMPF_SPADE:
-      return new TrumpfDeck('spade');
+      return new TrumpfDeck("spade")
     case DeckType.TRUMPF_CLUB:
-      return new TrumpfDeck('club');
+      return new TrumpfDeck("club")
   }
 }
 
