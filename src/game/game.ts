@@ -62,8 +62,20 @@ class Game {
   }
   getStichCardsAndPlace(): { display: string, place: number }[] {
     return this.currentStich.map((c) => {
-      return { display: c.cardDisplay, place: this.players.get(c.playerId).place }
+      return { display: c.cardDisplay, place: this.players.get(c.playerId).place, value: c.cardValue }
     })
+  }
+  validCard(id: number): boolean {
+    if (this.currentStich && this.currentStich.length > 0) {
+      const prevCard = this.deck.getCardById(
+        this.currentStich[this.currentStich.length - 1].cardId
+      )
+      const nextCard = this.deck.getCardById(id)
+      return this.deck.validateCard(prevCard, nextCard)
+    } else {
+      return true
+    }
+
   }
   playCard(cid: number, pid: string): void {
     const card = this.deck.getCardById(cid)

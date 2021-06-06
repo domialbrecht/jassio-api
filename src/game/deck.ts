@@ -59,6 +59,8 @@ abstract class Deck {
     return this.cards.find(c => c.id == id).value
   }
   abstract buildDeck(): void
+  //TODO: SERVER VALIDATION FOR SUIT. HAS TO CHECK IF PLAYER STILL HAS OF SUIT TYPE
+  abstract validateCard(prev: Card, next: Card): boolean
 }
 
 class UpdownDeck extends Deck {
@@ -67,6 +69,10 @@ class UpdownDeck extends Deck {
   }
   buildDeck() {
     this.addCards(CARDS)
+  }
+  validateCard(prev: Card, next: Card): boolean {
+    //if(prev.value <= next.value) return false
+    return true
   }
 }
 
@@ -78,12 +84,21 @@ class DownupDeck extends Deck {
   buildDeck() {
     this.addCards(CARDS.reverse())
   }
+  validateCard(prev: Card, next: Card): boolean {
+    //if (prev.value >= next.value) return false
+    return true
+  }
 }
 
 class SlamomDeck extends UpdownDeck {
   isUp = true
   constructor() {
     super()
+  }
+  validateCard(prev: Card, next: Card): boolean {
+    if (this.isUp && prev.value <= next.value) return false
+    if (!this.isUp && prev.value >= next.value) return false
+    return true
   }
 }
 
@@ -105,6 +120,10 @@ class TrumpfDeck extends Deck {
         this.cards.push({ id: (si * 10) + i + 1, display: `${s}_${c}`, suit: s, value: (tBonus + i + 1) })
       })
     })
+  }
+  validateCard(prev: Card, next: Card): boolean {
+    if (prev.value <= next.value) return false
+    return true
   }
 }
 

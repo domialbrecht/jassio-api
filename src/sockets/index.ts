@@ -44,6 +44,13 @@ const emitPlayers = (io: Server, game: Game, roomKey: string) => {
   io.to(roomKey).emit("players", team)
 }
 
+const sendCard = (game: Game) => {
+  const hands = game.getPlayerCards()
+  game.getPlayers().forEach((p, i) => {
+    p.socket.emit("getCards", hands[i])
+  })
+}
+
 const socketHandler = (io: Server, socket: GameSocket) => {
   socket.on("settingChanged", (settings) => {
     GAMES.get(socket.roomKey).setSettings(settings)
@@ -82,12 +89,26 @@ const socketHandler = (io: Server, socket: GameSocket) => {
   socket.on("typeselected", (type: string) => {
     const game = GAMES.get(socket.roomKey)
     game.setRoundType(stringTypeToDeckType(type))
+
+    //DEBUG
+    game.getPlayers().forEach((p) => {
+      console.log("======== PLAYER HAND ========")
+      p.hand.forEach(c => {
+        console.log(c)
+      })
+    })
+    //END DEBUG
+
     io.to(socket.roomKey).emit("typegotselected", type)
   })
   socket.on("cardPlayed", (id: number, playerId: string) => {
     const game = GAMES.get(socket.roomKey)
     const player = game.getPlayer(playerId)
     if (!player.shouldPlay) return
+    if (!game.validCard(id)) {
+      socket.emit("wrongCard")
+      return
+    }
     game.playCard(id, socket.id)
     const currentStich = game.getCurrentStich()
     io.to(socket.roomKey).emit("cards", game.getStichCardsAndPlace())
