@@ -1,3 +1,4 @@
+import { PlayedCard } from "./game"
 
 const chunk = <Type>(input: Array<Type>, size: number): Array<Array<Type>> => {
   return input.reduce((arr, item, idx) => {
@@ -34,6 +35,7 @@ interface Card {
   id: number
   display: string
   value: number
+  score: number
   suit: Suit
 }
 
@@ -48,7 +50,7 @@ abstract class Deck {
   addCards(ca: string[]): void {
     suits.forEach((s, si) => {
       ca.forEach((c, i) => {
-        this.cards.push({ id: (si * 10) + i + 1, display: `${s}_${c}`, suit: s, value: i + 1 })
+        this.cards.push({ id: (si * 10) + i + 1, display: `${s}_${c}`, suit: s, value: i + 1, score: 0 })
       })
     })
   }
@@ -58,9 +60,13 @@ abstract class Deck {
   getCardValueById(id: number): number {
     return this.cards.find(c => c.id == id).value
   }
+  validateCard(activeSuit: Suit, playerHasSuit: boolean, prev: Card, next: Card): boolean {
+    if (playerHasSuit && next.suit !== prev.suit) return false
+    return true
+  }
   abstract buildDeck(): void
-  //TODO: SERVER VALIDATION FOR SUIT. HAS TO CHECK IF PLAYER STILL HAS OF SUIT TYPE
-  abstract validateCard(prev: Card, next: Card): boolean
+  abstract setCardScores(): void
+  abstract getStichWin(stich: PlayedCard[]): number
 }
 
 class UpdownDeck extends Deck {
@@ -69,10 +75,46 @@ class UpdownDeck extends Deck {
   }
   buildDeck() {
     this.addCards(CARDS)
+    this.setCardScores()
   }
-  validateCard(prev: Card, next: Card): boolean {
-    //if(prev.value <= next.value) return false
-    return true
+  setCardScores() {
+    this.cards.forEach(c => {
+      switch (c.value) {
+        case 9:
+          c.score = 11
+          break
+        case 8:
+          c.score = 4
+          break
+        case 7:
+          c.score = 3
+          break
+        case 6:
+          c.score = 2
+          break
+        case 5:
+          c.score = 10
+          break
+        case 3:
+          c.score = 8
+          break
+        default:
+          break
+      }
+    })
+  }
+  getStichWin(stich: PlayedCard[]): number {
+    //TODO: This can be abstraceted for use in all non trumpf decks
+    let winId = stich[0].card.id
+    let maxVal = stich[0].card.value
+    stich.forEach((c, i) => {
+      if (i === 0) return
+      if (c.card.value > maxVal && c.card.suit === stich[0].card.suit) {
+        winId = c.card.id
+        maxVal = c.card.value
+      }
+    })
+    return winId
   }
 }
 
@@ -83,22 +125,100 @@ class DownupDeck extends Deck {
   }
   buildDeck() {
     this.addCards(CARDS.reverse())
+    this.setCardScores()
   }
-  validateCard(prev: Card, next: Card): boolean {
-    //if (prev.value >= next.value) return false
-    return true
+  setCardScores() {
+    this.cards.forEach(c => {
+      switch (c.value) {
+        case 9:
+          c.score = 11
+          break
+        case 7:
+          c.score = 8
+          break
+        case 5:
+          c.score = 10
+          break
+        case 4:
+          c.score = 2
+          break
+        case 3:
+          c.score = 3
+          break
+        case 2:
+          c.score = 4
+          break
+        default:
+          break
+      }
+    })
+  }
+  getStichWin(stich: PlayedCard[]): number {
+    throw new Error("Method not implemented.")
   }
 }
 
 class SlamomDeck extends UpdownDeck {
   isUp = true
+  currentWayUp = true
   constructor() {
     super()
   }
-  validateCard(prev: Card, next: Card): boolean {
-    if (this.isUp && prev.value <= next.value) return false
-    if (!this.isUp && prev.value >= next.value) return false
-    return true
+  setCardScores() {
+    if (this.isUp) {
+      this.cards.forEach(c => {
+        switch (c.value) {
+          case 9:
+            c.score = 11
+            break
+          case 8:
+            c.score = 4
+            break
+          case 7:
+            c.score = 3
+            break
+          case 6:
+            c.score = 2
+            break
+          case 5:
+            c.score = 10
+            break
+          case 3:
+            c.score = 8
+            break
+          default:
+            break
+        }
+      })
+    } else {
+      this.cards.forEach(c => {
+        switch (c.value) {
+          case 9:
+            c.score = 11
+            break
+          case 7:
+            c.score = 8
+            break
+          case 5:
+            c.score = 10
+            break
+          case 4:
+            c.score = 2
+            break
+          case 3:
+            c.score = 3
+            break
+          case 2:
+            c.score = 4
+            break
+          default:
+            break
+        }
+      })
+    }
+  }
+  getStichWin(stich: PlayedCard[]): number {
+    throw new Error("Method not implemented.")
   }
 }
 
@@ -117,13 +237,45 @@ class TrumpfDeck extends Deck {
         tBonus = 10
       }
       lc.forEach((c, i) => {
-        this.cards.push({ id: (si * 10) + i + 1, display: `${s}_${c}`, suit: s, value: (tBonus + i + 1) })
+        this.cards.push({ id: (si * 10) + i + 1, display: `${s}_${c}`, suit: s, value: (tBonus + i + 1), score: 0 })
       })
     })
   }
-  validateCard(prev: Card, next: Card): boolean {
-    if (prev.value <= next.value) return false
+  setCardScores() {
+    this.cards.forEach(c => {
+      switch (c.value) {
+        case 9:
+          c.score = 11
+          break
+        case 8:
+          c.score = 4
+          break
+        case 7:
+          c.score = 3
+          break
+        case 6:
+          c.suit === this.trumpf ? c.score = 20 : 2
+          break
+        case 5:
+          c.score = 10
+          break
+        case 4:
+          c.suit === this.trumpf ? c.score = 14 : 0
+          break
+        default:
+          break
+      }
+    })
+  }
+  validateCard(activeSuit: Suit, playerHasSuit: boolean, prev: Card, next: Card): boolean {
+    if (playerHasSuit && next.suit !== prev.suit) {
+      if (next.suit !== this.trumpf) return false
+
+    }
     return true
+  }
+  getStichWin(stich: PlayedCard[]): number {
+    throw new Error("Method not implemented.")
   }
 }
 

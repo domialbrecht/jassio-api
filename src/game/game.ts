@@ -1,6 +1,12 @@
 import { Socket } from "socket.io"
 import { Card, Deck, DeckType, deckFactory } from "./deck"
+import logger from "../util/logger"
 const GAMES: Map<string, Game> = new Map()
+
+interface Score {
+  teamA: number
+  teamB: number
+}
 
 type GameSettings = {
   winAmount: number,
@@ -15,9 +21,7 @@ type Player = {
 }
 
 type PlayedCard = {
-  cardId: number,
-  cardValue: number,
-  cardDisplay: string,
+  card: Card,
   playerId: string,
 }
 
@@ -27,14 +31,14 @@ class Game {
   running: boolean
   teamSwapLive: boolean
   players: Map<string, Player> = new Map()
-  playersOrdered: Array<Player>
   deck: Deck
   currentStich: Array<PlayedCard>
+  score: Score = { teamA: 0, teamB: 0 }
   constructor(key: string, host: Socket) {
     this.roomKey = key
     this.players.set(host.id, { socket: host, hand: [], shouldPlay: false, place: 0 })
     this.settings = { winAmount: 1000, enableWise: true }
-    this.deck = this.createDeck(DeckType.TRUMPF_HEART) //Initial just for first play
+    this.deck = this.createDeck(DeckType.UPDOWN) //Initial just for first play
     this.deck.buildDeck()
     this.currentStich = []
   }
@@ -48,12 +52,14 @@ class Game {
     return deckFactory(type)
   }
   setRoundType(type: DeckType): void {
-    //HACK:: This is kinda bad, rework deck build and redistribute logic
-    const deckOfRoundType = this.createDeck(type)
-    deckOfRoundType.buildDeck()
+    this.deck = this.createDeck(type)
+    this.deck.buildDeck()
+    //Do not hand out new card, but update existing val and score
     this.players.forEach(p => {
       p.hand.forEach(c => {
-        c.value = deckOfRoundType.getCardValueById(c.id)
+        const card = this.deck.getCardById(c.id)
+        c.value = card.value
+        c.score = card.score
       })
     })
   }
@@ -62,24 +68,70 @@ class Game {
   }
   getStichCardsAndPlace(): { display: string, place: number }[] {
     return this.currentStich.map((c) => {
-      return { display: c.cardDisplay, place: this.players.get(c.playerId).place, value: c.cardValue }
+      return { display: c.card.display, place: this.players.get(c.playerId).place, value: c.card.value }
     })
   }
-  validCard(id: number): boolean {
+  getScore(): Score {
+    return this.score
+  }
+  completeStich(): string {
+    const winningCardId = this.deck.getStichWin(this.currentStich)
+    let sum = 0
+    let teamAWin = true
+    let playerWinId = this.currentStich[0].playerId
+    this.currentStich.forEach(c => {
+      const playerPlace = this.players.get(c.playerId).place
+      sum += c.card.score
+      if (c.card.id === winningCardId) {
+        if (playerPlace === 1 || playerPlace === 3) teamAWin = false
+        playerWinId = c.playerId
+      }
+    })
+    if (teamAWin) this.score.teamA += sum
+    else this.score.teamB += sum
+    this.currentStich = []
+    return playerWinId
+  }
+  validPlay(player: Player, cid: number): boolean {
+    if (!player.shouldPlay) {
+      logger.log("error", `Invalid Play: Player ${player.place} should not play`)
+      return false
+    }
+    if (!player.hand.find(c => c.id === cid)) {
+      logger.log("error", `Invalid Play: Player ${player.place} has not card`)
+      return false
+    }
+    if (!this.validCard(cid, player)) return false
+    return true
+  }
+  validCard(id: number, player: Player): boolean {
     if (this.currentStich && this.currentStich.length > 0) {
+      const activeSuit = this.deck.getCardById(
+        this.currentStich[0].card.id
+      ).suit
+      const playerHasSuit = player.hand.find(c => c.suit === activeSuit) ? true : false
       const prevCard = this.deck.getCardById(
-        this.currentStich[this.currentStich.length - 1].cardId
+        this.currentStich[this.currentStich.length - 1].card.id
       )
       const nextCard = this.deck.getCardById(id)
-      return this.deck.validateCard(prevCard, nextCard)
+      logger.log("info", `Card Validation: ASuit: ${activeSuit}, PHas: ${playerHasSuit}, prevC: ${prevCard}, nCard: ${nextCard}`)
+      return this.deck.validateCard(activeSuit, playerHasSuit, prevCard, nextCard)
     } else {
       return true
     }
 
   }
   playCard(cid: number, pid: string): void {
+    //Remove played card from player hand
+    this.getPlayer(pid).hand = this.getPlayer(pid).hand.filter(c => c.id !== cid)
+    //Add card to stich
     const card = this.deck.getCardById(cid)
-    this.getCurrentStich().push({ cardId: cid, playerId: pid, cardValue: card.value, cardDisplay: card.display })
+    this.getCurrentStich().push({ card: card, playerId: pid })
+  }
+  setPlayerTurn(place: number): void {
+    this.getPlayers().forEach(p => {
+      p.place == place ? p.shouldPlay = true : p.shouldPlay = false
+    })
   }
   getPlayers(): Player[] {
     return Array.from(this.players.values())
@@ -112,4 +164,4 @@ class Game {
   }
 }
 
-export { GAMES, Game }
+export { GAMES, Game, PlayedCard }

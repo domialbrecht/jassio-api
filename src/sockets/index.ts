@@ -75,13 +75,11 @@ const socketHandler = (io: Server, socket: GameSocket) => {
     game.getPlayers().forEach((p, i) => {
       p.hand = hands[i]
       p.socket.emit("getCards", hands[i])
-      console.log("======== PLAYER HAND ========")
       hands[i].forEach(c => {
-        console.log(c)
         if (c.id === 15) {
           p.socket.emit("turnselect")
           io.to(socket.roomKey).emit("playerturn", p.place)
-          p.shouldPlay = true
+          game.setPlayerTurn(p.place)
         }
       })
     })
@@ -104,8 +102,7 @@ const socketHandler = (io: Server, socket: GameSocket) => {
   socket.on("cardPlayed", (id: number, playerId: string) => {
     const game = GAMES.get(socket.roomKey)
     const player = game.getPlayer(playerId)
-    if (!player.shouldPlay) return
-    if (!game.validCard(id)) {
+    if (!game.validPlay(player, id)) {
       socket.emit("wrongCard")
       return
     }
@@ -114,10 +111,14 @@ const socketHandler = (io: Server, socket: GameSocket) => {
     io.to(socket.roomKey).emit("cards", game.getStichCardsAndPlace())
     if (currentStich.length < 4) {
       const place = player.place + 1 <= 3 ? player.place + 1 : 0
-      game.getPlayers().find(p => p.place == place).shouldPlay = true
+      game.setPlayerTurn(place)
       io.to(socket.roomKey).emit("playerturn", place)
     } else {
+      const winnerPlayer = game.getPlayer(game.completeStich())
+      io.to(socket.roomKey).emit("score", game.getScore())
       io.to(socket.roomKey).emit("clearboard")
+      game.setPlayerTurn(winnerPlayer.place)
+      io.to(socket.roomKey).emit("playerturn", winnerPlayer.place)
     }
 
   })
