@@ -113,7 +113,7 @@ const onConnection = async (socket: GameSocket) => {
 io.on("connection", onConnection)
 
 if (isProduction) {
-  app.use(favicon(__dirname + "./public/images/favicon.ico"))
+  app.use(favicon(__dirname + "/public/images/favicon.ico"))
   app.use(express.static(__dirname + "public"))
 }
 
