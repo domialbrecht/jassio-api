@@ -15,17 +15,19 @@ const stringTypeToDeckType = (type: string): DeckType => {
     case "Obeabe":
       return DeckType.UPDOWN
     case "Undeufe":
-      return DeckType.UPDOWN
-    case "Slalom":
-      return DeckType.UPDOWN
+      return DeckType.DOWNUP
+    case "Slalom_up":
+      return DeckType.SLALOM_UP
+    case "Slalom_down":
+      return DeckType.SLALOM_DOWN
     case "Trumpf_heart":
-      return DeckType.UPDOWN
+      return DeckType.TRUMPF_HEART
     case "Trumpf_diamond":
-      return DeckType.UPDOWN
+      return DeckType.TRUMPF_DIAMOND
     case "Trumpf_spade":
-      return DeckType.UPDOWN
+      return DeckType.TRUMPF_SPADE
     case "Trumpf_club":
-      return DeckType.UPDOWN
+      return DeckType.TRUMPF_CLUB
     default:
       return DeckType.UPDOWN
   }
@@ -89,6 +91,15 @@ const socketHandler = (io: Server, socket: GameSocket) => {
     const game = GAMES.get(socket.roomKey)
     if (type !== "switch") {
       game.setRoundType(stringTypeToDeckType(type))
+
+      //DEBUG
+      game.getPlayers().forEach((p) => {
+        console.log("======== PLAYER HAND ========")
+        p.hand.forEach(c => {
+          console.log(c)
+        })
+      })
+      //END DEBUG
 
       // If player has switched previously, allow initial player to play again
       if (game.playerHasSwitched) {

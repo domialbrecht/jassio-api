@@ -1,5 +1,5 @@
 import { Socket } from "socket.io"
-import { Card, Deck, DeckType, deckFactory } from "./deck"
+import { Card, Deck, DeckType, deckFactory, TrumpfDeck } from "./deck"
 import logger from "../util/logger"
 const GAMES: Map<string, Game> = new Map()
 
@@ -35,7 +35,7 @@ class Game {
   deck: Deck
   currentStich: Array<PlayedCard>
   stichCounter = 0
-  playerHasSwitched: string |undefined
+  playerHasSwitched: string | undefined
   score: Score = { teamA: 0, teamB: 0 }
   constructor(key: string, host: Socket) {
     this.roomKey = key
@@ -129,7 +129,8 @@ class Game {
       )
       const nextCard = this.deck.getCardById(id)
       logger.log("info", `Card Validation: ASuit: ${activeSuit}, PHas: ${playerHasSuit}, prevC: ${prevCard.display}, nCard: ${nextCard.display}`)
-      return this.deck.validateCard(activeSuit, playerHasSuit, prevCard, nextCard)
+      const playerHasTrumpfbur = player.hand.find(c => c.value === 100) ? true : false  
+      return this.deck.validateCard(activeSuit, playerHasSuit, prevCard, nextCard, playerHasTrumpfbur)
     } else {
       return true
     }
@@ -165,16 +166,16 @@ class Game {
     return this.getPlayers().find(p => p.place === place)
   }
   getPlayerTeammate(place: number): Player {
-      switch (place) {
-        case 0:
-            return this.getPlayerByPlace(2)
-        case 1:
-          return this.getPlayerByPlace(3)
-        case 2:
-          return this.getPlayerByPlace(0)
-        case 3:
-          return this.getPlayerByPlace(1)
-      }
+    switch (place) {
+      case 0:
+        return this.getPlayerByPlace(2)
+      case 1:
+        return this.getPlayerByPlace(3)
+      case 2:
+        return this.getPlayerByPlace(0)
+      case 3:
+        return this.getPlayerByPlace(1)
+    }
   }
   addPlayer(player: Socket, place: number): void {
     this.players.set(player.id, { hand: [], socket: player, shouldPlay: false, place: place })

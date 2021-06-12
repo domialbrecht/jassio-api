@@ -122,7 +122,6 @@ if (isProduction) {
 //Setup all routes
 //---------------------------------------------
 import router from "./routes"
-import { DeckType } from "./game/deck"
 app.use(router)
 //---------------------------------------------
 
