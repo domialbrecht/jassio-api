@@ -31,8 +31,10 @@ class Game {
   running: boolean
   teamSwapLive: boolean
   players: Map<string, Player> = new Map()
+  roundStartPlace: number
   deck: Deck
   currentStich: Array<PlayedCard>
+  stichCounter = 0
   score: Score = { teamA: 0, teamB: 0 }
   constructor(key: string, host: Socket) {
     this.roomKey = key
@@ -63,6 +65,10 @@ class Game {
       })
     })
   }
+  finishRound(): { nextPlayerId: string, roundFinished: boolean } {
+    const nextRoundStartPlace = this.roundStartPlace + 1 > 3 ? 0 : this.roundStartPlace + 1
+    return { nextPlayerId: this.getPlayers().find(p => p.place === nextRoundStartPlace).socket.id, roundFinished: true }
+  }
   getCurrentStich(): PlayedCard[] {
     return this.currentStich
   }
@@ -74,7 +80,8 @@ class Game {
   getScore(): Score {
     return this.score
   }
-  completeStich(): string {
+  completeStich(): { nextPlayerId: string, roundFinished: boolean } {
+    //FIXME: RENAME METHOD TO HIDE AT RETURN TYPE
     const winningCardId = this.deck.getStichWin(this.currentStich)
     let sum = 0
     let teamAWin = true
@@ -90,7 +97,12 @@ class Game {
     if (teamAWin) this.score.teamA += sum
     else this.score.teamB += sum
     this.currentStich = []
-    return playerWinId
+    this.stichCounter += 1
+    if (this.stichCounter === 9) {
+      return this.finishRound()
+    } else {
+      return {nextPlayerId: playerWinId, roundFinished: false}
+    }
   }
   validPlay(player: Player, cid: number): boolean {
     if (!player.shouldPlay) {
@@ -114,7 +126,7 @@ class Game {
         this.currentStich[this.currentStich.length - 1].card.id
       )
       const nextCard = this.deck.getCardById(id)
-      logger.log("info", `Card Validation: ASuit: ${activeSuit}, PHas: ${playerHasSuit}, prevC: ${prevCard}, nCard: ${nextCard}`)
+      logger.log("info", `Card Validation: ASuit: ${activeSuit}, PHas: ${playerHasSuit}, prevC: ${prevCard.display}, nCard: ${nextCard.display}`)
       return this.deck.validateCard(activeSuit, playerHasSuit, prevCard, nextCard)
     } else {
       return true

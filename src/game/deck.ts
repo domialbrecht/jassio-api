@@ -61,7 +61,7 @@ abstract class Deck {
     return this.cards.find(c => c.id == id).value
   }
   validateCard(activeSuit: Suit, playerHasSuit: boolean, prev: Card, next: Card): boolean {
-    if (playerHasSuit && next.suit !== prev.suit) return false
+    if (playerHasSuit && next.suit !== activeSuit) return false
     return true
   }
   abstract buildDeck(): void
