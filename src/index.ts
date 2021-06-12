@@ -112,8 +112,11 @@ const onConnection = async (socket: GameSocket) => {
 
 io.on("connection", onConnection)
 
-app.use(favicon(__dirname + "../../public/images/favicon.ico"))
-app.use(express.static(__dirname + "../public"))
+if (isProduction) {
+  app.use(favicon(__dirname + "./public/images/favicon.ico"))
+  app.use(express.static(__dirname + "public"))
+}
+
 
 //---------------------------------------------
 //Setup all routes
