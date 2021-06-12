@@ -35,6 +35,7 @@ class Game {
   deck: Deck
   currentStich: Array<PlayedCard>
   stichCounter = 0
+  playerHasSwitched: string |undefined
   score: Score = { teamA: 0, teamB: 0 }
   constructor(key: string, host: Socket) {
     this.roomKey = key
@@ -42,6 +43,7 @@ class Game {
     this.settings = { winAmount: 1000, enableWise: true }
     this.deck = this.createDeck(DeckType.UPDOWN) //Initial just for first play
     this.deck.buildDeck()
+    this.playerHasSwitched = undefined
     this.currentStich = []
   }
   startGame(): void {
@@ -101,7 +103,7 @@ class Game {
     if (this.stichCounter === 9) {
       return this.finishRound()
     } else {
-      return {nextPlayerId: playerWinId, roundFinished: false}
+      return { nextPlayerId: playerWinId, roundFinished: false }
     }
   }
   validPlay(player: Player, cid: number): boolean {
@@ -158,6 +160,21 @@ class Game {
     return Array.from(this.players.values()).map((p) => {
       return { socket: p.socket, place: p.place }
     })
+  }
+  getPlayerByPlace(place: number): Player {
+    return this.getPlayers().find(p => p.place === place)
+  }
+  getPlayerTeammate(place: number): Player {
+      switch (place) {
+        case 0:
+            return this.getPlayerByPlace(2)
+        case 1:
+          return this.getPlayerByPlace(3)
+        case 2:
+          return this.getPlayerByPlace(0)
+        case 3:
+          return this.getPlayerByPlace(1)
+      }
   }
   addPlayer(player: Socket, place: number): void {
     this.players.set(player.id, { hand: [], socket: player, shouldPlay: false, place: place })

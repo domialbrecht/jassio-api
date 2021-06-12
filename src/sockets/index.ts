@@ -87,18 +87,22 @@ const socketHandler = (io: Server, socket: GameSocket) => {
   })
   socket.on("typeselected", (type: string) => {
     const game = GAMES.get(socket.roomKey)
-    game.setRoundType(stringTypeToDeckType(type))
+    if (type !== "switch") {
+      game.setRoundType(stringTypeToDeckType(type))
 
-    //DEBUG
-    game.getPlayers().forEach((p) => {
-      console.log("======== PLAYER HAND ========")
-      p.hand.forEach(c => {
-        console.log(c)
-      })
-    })
-    //END DEBUG
+      // If player has switched previously, allow initial player to play again
+      if (game.playerHasSwitched) {
+        game.getPlayer(game.playerHasSwitched).shouldPlay = true
+        game.playerHasSwitched = undefined
+      }
 
-    io.to(socket.roomKey).emit("typegotselected", type)
+      io.to(socket.roomKey).emit("typegotselected", type)
+    } else {
+      const playerThatSwitched = game.getPlayer(socket.id)
+      playerThatSwitched.shouldPlay = false //Temp don't allow player to play cards
+      game.playerHasSwitched = socket.id // Store player to allow play later
+      game.getPlayerTeammate(playerThatSwitched.place).socket.emit("turnselect")
+    }
   })
   socket.on("cardPlayed", (id: number, playerId: string) => {
     const game = GAMES.get(socket.roomKey)
