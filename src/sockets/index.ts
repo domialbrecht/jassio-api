@@ -46,14 +46,7 @@ const emitPlayers = (io: Server, game: Game, roomKey: string) => {
   io.to(roomKey).emit("players", team)
 }
 
-const sendCard = (game: Game) => {
-  const hands = game.getPlayerCards()
-  game.getPlayers().forEach((p, i) => {
-    p.socket.emit("getCards", hands[i])
-  })
-}
-
-const socketHandler = (io: Server, socket: GameSocket) => {
+const socketHandler = (io: Server, socket: GameSocket): void => {
   socket.on("settingChanged", (settings) => {
     GAMES.get(socket.roomKey).setSettings(settings)
     io.to(socket.roomKey).emit("newSettings", settings)
