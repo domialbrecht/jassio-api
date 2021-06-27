@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io"
-import { DeckType } from "../game/deck"
+import { Card, DeckType } from "../game/deck"
+import { WisType } from "../game/wise"
 import { Game, GAMES } from "../game/game"
 
 interface GameSocket extends Socket {
@@ -108,6 +109,12 @@ const socketHandler = (io: Server, socket: GameSocket): void => {
       game.getPlayerTeammate(playerThatSwitched.place).socket.emit("turnselect")
     }
   })
+  socket.on("wis", (playerId: string, cards: Card[], wisType: WisType) => {
+    const game = GAMES.get(socket.roomKey)
+    if(game.validWis(playerId, cards, wisType)) {
+      io.to(socket.roomKey).emit("wisdeclare", game.getWisInfo())
+    }
+  })
   socket.on("cardPlayed", (id: number, playerId: string) => {
     const game = GAMES.get(socket.roomKey)
     const player = game.getPlayer(playerId)
@@ -125,6 +132,7 @@ const socketHandler = (io: Server, socket: GameSocket): void => {
     } else {
       const stichInfo = game.completeStich()
       const winnerPlayer = game.getPlayer(stichInfo.nextPlayerId)
+      //TODO: Emit second arg in score if match, play animation on client
       io.to(socket.roomKey).emit("score", game.getScore())
       io.to(socket.roomKey).emit("clearboard")
       game.setPlayerTurn(winnerPlayer.place)

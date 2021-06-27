@@ -295,24 +295,31 @@ class TrumpfDeck extends Deck {
           c.score = 14
           break
         case 9:
+        case 29:
+
           c.score = 11
           break
         case 8:
+        case 28:
           c.score = 4
           break
         case 7:
+        case 27:
           c.score = 3
           break
         case 6:
           c.score = 2
           break
         case 5:
+        case 25:
           c.score = 10
           break
         default:
+          c.score = 0
           break
       }
     })
+    console.log(this.cards)
   }
   validateCard(activeSuit: Suit, playerHasSuit: boolean, prev: Card, next: Card, playerHasTrumpfbur: boolean): boolean {
     if (activeSuit === this.trumpf) {
@@ -358,4 +365,4 @@ function deckFactory(type: DeckType): Deck {
   }
 }
 
-export { Card, Deck, DeckType, deckFactory, TrumpfDeck }
+export { Card, Deck, DeckType, deckFactory }

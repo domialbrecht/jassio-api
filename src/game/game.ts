@@ -1,5 +1,6 @@
 import { Socket } from "socket.io"
-import { Card, Deck, DeckType, deckFactory, TrumpfDeck } from "./deck"
+import { Card, Deck, DeckType, deckFactory } from "./deck"
+import { WisHandler, WisType, WisInfo } from "./wise"
 import logger from "../util/logger"
 const GAMES: Map<string, Game> = new Map()
 
@@ -25,26 +26,36 @@ type PlayedCard = {
   playerId: string,
 }
 
+export enum Team {
+  TeamA,
+  TeamB
+}
+
 class Game {
   roomKey: string
   settings: GameSettings
   running: boolean
   teamSwapLive: boolean
   players: Map<string, Player> = new Map()
+  wishander: WisHandler
   roundStartPlace: number
   deck: Deck
   currentStich: Array<PlayedCard>
   stichCounter = 0
   playerHasSwitched: string | undefined
   score: Score = { teamA: 0, teamB: 0 }
+  roundScore: Score = { teamA: 0, teamB: 0 }
+  roundCounter: number
   constructor(key: string, host: Socket) {
     this.roomKey = key
     this.players.set(host.id, { socket: host, hand: [], shouldPlay: false, place: 0 })
+    this.wishander = new WisHandler()
     this.settings = { winAmount: 1000, enableWise: true }
     this.deck = this.createDeck(DeckType.UPDOWN) //Initial just for first play
     this.deck.buildDeck()
     this.playerHasSwitched = undefined
     this.currentStich = []
+    this.roundCounter = 0
   }
   startGame(): void {
     this.running = true
@@ -69,6 +80,14 @@ class Game {
   }
   finishRound(): { nextPlayerId: string, roundFinished: boolean } {
     const nextRoundStartPlace = this.roundStartPlace + 1 > 3 ? 0 : this.roundStartPlace + 1
+    this.roundCounter += 1
+    //TODO: If score is 1000 for one team here, return and emit game win
+    if (this.roundScore.teamA === 0) this.roundScore.teamB + 100
+    if (this.roundScore.teamB === 0) this.roundScore.teamA + 100
+    this.score.teamA += this.roundScore.teamA
+    this.score.teamB += this.roundScore.teamB
+    this.roundScore = { teamA: 0, teamB: 0 }
+
     return { nextPlayerId: this.getPlayers().find(p => p.place === nextRoundStartPlace).socket.id, roundFinished: true }
   }
   getCurrentStich(): PlayedCard[] {
@@ -80,24 +99,30 @@ class Game {
     })
   }
   getScore(): Score {
-    return this.score
+    return {
+      teamA: this.score.teamA + this.roundScore.teamA,
+      teamB: this.score.teamB + this.roundScore.teamB
+    }
   }
   completeStich(): { nextPlayerId: string, roundFinished: boolean } {
     //FIXME: RENAME METHOD TO HIDE AT RETURN TYPE
+    if (this.stichCounter === 0) {
+      this.finishWise()
+    }
+
     const winningCardId = this.deck.getStichWin(this.currentStich)
     let sum = 0
-    let teamAWin = true
+    let teamWin
     let playerWinId = this.currentStich[0].playerId
     this.currentStich.forEach(c => {
-      const playerPlace = this.players.get(c.playerId).place
       sum += c.card.score
       if (c.card.id === winningCardId) {
-        if (playerPlace === 1 || playerPlace === 3) teamAWin = false
+        teamWin = this.getPlayerTeam(this.players.get(c.playerId))
         playerWinId = c.playerId
       }
     })
-    if (teamAWin) this.score.teamA += sum
-    else this.score.teamB += sum
+    if (teamWin === Team.TeamA) this.roundScore.teamA += sum
+    else this.roundScore.teamB += sum
     this.currentStich = []
     this.stichCounter += 1
     if (this.stichCounter === 9) {
@@ -129,12 +154,31 @@ class Game {
       )
       const nextCard = this.deck.getCardById(id)
       logger.log("info", `Card Validation: ASuit: ${activeSuit}, PHas: ${playerHasSuit}, prevC: ${prevCard.display}, nCard: ${nextCard.display}`)
-      const playerHasTrumpfbur = player.hand.find(c => c.value === 100) ? true : false  
+      const playerHasTrumpfbur = player.hand.find(c => c.value === 100) ? true : false
       return this.deck.validateCard(activeSuit, playerHasSuit, prevCard, nextCard, playerHasTrumpfbur)
     } else {
       return true
     }
 
+  }
+  getWisInfo(): WisInfo[] {
+    return this.wishander.getDeclareList().map(e => {
+      e.playerPlace = this.getPlayer(e.playerId).place
+      return e
+    })
+  }
+  validWis(playerId: string, cards: Card[], type: WisType): boolean {
+    const team = this.getPlayerTeam(this.getPlayer(playerId))
+    return this.wishander.declareWis(playerId, team , cards, type)
+  }
+  finishWise(): void {
+    const wisResult = this.wishander.getWisWinScore()
+    if (wisResult.team === Team.TeamA) {
+      this.score.teamA = this.score.teamA + wisResult.amount
+    } else {
+      this.score.teamB = this.score.teamA + wisResult.amount
+    }
+    
   }
   playCard(cid: number, pid: string): void {
     //Remove played card from player hand
@@ -164,6 +208,10 @@ class Game {
   }
   getPlayerByPlace(place: number): Player {
     return this.getPlayers().find(p => p.place === place)
+  }
+  getPlayerTeam(player: Player): Team {
+    if (player.place === 1 || player.place === 3) return Team.TeamB
+    else return Team.TeamA
   }
   getPlayerTeammate(place: number): Player {
     switch (place) {
