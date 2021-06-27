@@ -115,6 +115,7 @@ class WisHandler {
     this.playerWisList = new Map<string, WisEntry>()
   }
   declareWis(playerId: string, team: Team, cards: Card[], wisType: WisType): boolean {
+    //TODO: Add validation for submitting same cards mutliple times
     switch (wisType) {
       case WisType.BLATT:
         if (validateBlattWis(cards)) {
