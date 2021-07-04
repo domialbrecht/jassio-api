@@ -52,7 +52,7 @@ io.use((socket: GameSocket, next) => {
 
 const onConnection = async (socket: GameSocket) => {
   if (socket.isHost) {
-    GAMES.set(socket.roomKey, new Game(socket.roomKey, socket))
+    GAMES.set(socket.roomKey, new Game(socket.roomKey, socket, io))
     socket.emit("hosted", socket.roomKey)
   } else {
     const game = GAMES.get(socket.roomKey)

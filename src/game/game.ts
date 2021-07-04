@@ -1,4 +1,4 @@
-import { Socket } from "socket.io"
+import { Socket, Server } from "socket.io"
 import { Card, Deck, DeckType, deckFactory } from "./deck"
 import { WisHandler, WisType, WisInfo } from "./wise"
 import logger from "../util/logger"
@@ -33,6 +33,7 @@ export enum Team {
 
 class Game {
   roomKey: string
+  io: Server
   settings: GameSettings
   running: boolean
   teamSwapLive: boolean
@@ -46,11 +47,12 @@ class Game {
   score: Score = { teamA: 0, teamB: 0 }
   roundScore: Score = { teamA: 0, teamB: 0 }
   roundCounter: number
-  constructor(key: string, host: Socket) {
+  constructor(key: string, host: Socket, io: Server) {
     this.roomKey = key
+    this.io = io
     this.players.set(host.id, { socket: host, hand: [], shouldPlay: false, place: 0 })
     this.wishander = new WisHandler()
-    this.settings = { winAmount: 1000, enableWise: true }
+    this.settings = { winAmount: 1000, enableWise: false }
     this.deck = this.createDeck(DeckType.UPDOWN) //Initial just for first play
     this.deck.buildDeck()
     this.playerHasSwitched = undefined
@@ -81,7 +83,6 @@ class Game {
   finishRound(): { nextPlayerId: string, roundFinished: boolean } {
     const nextRoundStartPlace = this.roundStartPlace + 1 > 3 ? 0 : this.roundStartPlace + 1
     this.roundCounter += 1
-    //TODO: If score is 1000 for one team here, return and emit game win
     if (this.roundScore.teamA === 0) this.roundScore.teamB + 100
     if (this.roundScore.teamB === 0) this.roundScore.teamA + 100
     this.score.teamA += this.roundScore.teamA
@@ -104,8 +105,18 @@ class Game {
       teamB: this.score.teamB + this.roundScore.teamB
     }
   }
+  isGameFinished(): void {
+    let winTeam
+    if (this.score.teamA >= this.settings.winAmount) winTeam = Team.TeamA
+    else if (this.score.teamB >= this.settings.winAmount) winTeam = Team.TeamB
+    if (!winTeam) return
+    else {
+      //TODO: Store infos in DB
+      this.io.to(this.roomKey).emit("win", winTeam)
+    }
+  }
   completeStich(): { nextPlayerId: string, roundFinished: boolean } {
-    if (this.stichCounter === 0) {
+    if (this.stichCounter === 0 && this.settings.enableWise) {
       this.finishWise()
     }
 
@@ -122,6 +133,7 @@ class Game {
     })
     if (teamWin === Team.TeamA) this.roundScore.teamA += sum
     else this.roundScore.teamB += sum
+    this.isGameFinished()
     this.currentStich = []
     this.stichCounter += 1
     if (this.stichCounter === 9) {
@@ -167,8 +179,9 @@ class Game {
     })
   }
   validWis(playerId: string, cards: Card[], type: WisType): boolean {
+    if (!this.settings.enableWise) return false
     const team = this.getPlayerTeam(this.getPlayer(playerId))
-    return this.wishander.declareWis(playerId, team , cards, type)
+    return this.wishander.declareWis(playerId, team, cards, type)
   }
   finishWise(): void {
     const wisResult = this.wishander.getWisWinScore()
@@ -177,7 +190,7 @@ class Game {
     } else {
       this.score.teamB = this.score.teamA + wisResult.amount
     }
-    
+    this.isGameFinished()
   }
   playCard(cid: number, pid: string): void {
     //Remove played card from player hand

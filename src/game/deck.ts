@@ -335,7 +335,7 @@ class TrumpfDeck extends Deck {
     let maxVal = stich[0].card.value
     stich.forEach((c, i) => {
       if (i === 0) return
-      if (c.card.value > maxVal && c.card.suit === stich[0].card.suit) {
+      if (c.card.value > maxVal && (c.card.suit === stich[0].card.suit || c.card.suit === this.trumpf)) {
         winId = c.card.id
         maxVal = c.card.value
       }

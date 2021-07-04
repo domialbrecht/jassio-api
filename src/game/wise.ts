@@ -3,7 +3,6 @@ import { Team } from "./game"
 
 export enum WisType {
   BLATT = "blatt",
-  STOECK = "stoeck",
   SIMILAR = "similar",
 }
 
@@ -75,17 +74,6 @@ function validateBlattWis(cards: Card[]) {
     .every((card, i) => i === 0 || cards[i - 1].id + 1 === card.id)
 }
 
-class StoeckWis extends Wis {
-  numerateWis(): void {
-    this.score = 20
-    this.value = 20
-  }
-}
-function validateStoeckWis(cards: Card[]) {
-  //TODO: Check values
-  return cards.find(c => c.value === 27) && cards.find(c => c.value === 28)
-}
-
 class SimilarWis extends Wis {
   numerateWis(): void {
     //From 4 similar cards, get one that is not trumpf to set value correctly
@@ -116,22 +104,16 @@ class WisHandler {
     this.playerWisList = new Map<string, WisEntry>()
   }
   declareWis(playerId: string, team: Team, cards: Card[], wisType: WisType): boolean {
-    const playerWise = this.playerWisList.get(playerId).wise
-    const cardsUnused = playerWise.every(w => w.cards.every(c => cards.some(cf => cf.id == c.id) === false))
+    let cardsUnused = true
+    const playerWise = this.playerWisList.get(playerId) ? this.playerWisList.get(playerId).wise : undefined
+    if(playerWise) {
+      cardsUnused = playerWise.every(w => w.cards.every(c => cards.some(cf => cf.id == c.id) === false))
+    }
     switch (wisType) {
       case WisType.BLATT:
         if (validateBlattWis(cards)) {
           this.addWis(playerId, team, new BlattWis(cards))
           return cardsUnused ? true : false
-        }
-        return false
-      case WisType.STOECK:
-        if (validateStoeckWis(cards)) {
-          //Player has already had stoeck decleared
-          if(playerWise.some(w => w instanceof StoeckWis)) return false
-          this.addWis(playerId, team, new StoeckWis(cards))
-          //Stoeck cards can be used in two wise
-          return true
         }
         return false
       case WisType.SIMILAR:
