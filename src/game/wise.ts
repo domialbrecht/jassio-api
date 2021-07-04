@@ -82,7 +82,8 @@ class StoeckWis extends Wis {
   }
 }
 function validateStoeckWis(cards: Card[]) {
-  return true
+  //TODO: Check values
+  return cards.find(c => c.value === 27) && cards.find(c => c.value === 28)
 }
 
 class SimilarWis extends Wis {
@@ -115,24 +116,28 @@ class WisHandler {
     this.playerWisList = new Map<string, WisEntry>()
   }
   declareWis(playerId: string, team: Team, cards: Card[], wisType: WisType): boolean {
-    //TODO: Add validation for submitting same cards mutliple times
+    const playerWise = this.playerWisList.get(playerId).wise
+    const cardsUnused = playerWise.every(w => w.cards.every(c => cards.some(cf => cf.id == c.id) === false))
     switch (wisType) {
       case WisType.BLATT:
         if (validateBlattWis(cards)) {
           this.addWis(playerId, team, new BlattWis(cards))
-          return true
+          return cardsUnused ? true : false
         }
         return false
       case WisType.STOECK:
         if (validateStoeckWis(cards)) {
+          //Player has already had stoeck decleared
+          if(playerWise.some(w => w instanceof StoeckWis)) return false
           this.addWis(playerId, team, new StoeckWis(cards))
+          //Stoeck cards can be used in two wise
           return true
         }
         return false
       case WisType.SIMILAR:
         if (validateSimilarWis(cards)) {
           this.addWis(playerId, team, new SimilarWis(cards))
-          return true
+          return cardsUnused ? true : false
         }
         return false
       default:
@@ -180,6 +185,9 @@ class WisHandler {
         })
       }
     })
+
+    //Delete wise for next round
+    this.playerWisList.clear()
 
     return { team: winnerTeam, amount: score }
   }

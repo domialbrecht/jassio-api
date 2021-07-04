@@ -105,7 +105,6 @@ class Game {
     }
   }
   completeStich(): { nextPlayerId: string, roundFinished: boolean } {
-    //FIXME: RENAME METHOD TO HIDE AT RETURN TYPE
     if (this.stichCounter === 0) {
       this.finishWise()
     }
