@@ -73,7 +73,7 @@ const socketHandler = (io: Server, socket: GameSocket): void => {
       p.socket.emit("getCards", hands[i])
       hands[i].forEach(c => {
         if (c.id === 15) {
-          p.socket.emit("turnselect")
+          p.socket.emit("turnselect", false)
           game.roundStartPlace = p.place
           io.to(socket.roomKey).emit("playerturn", p.place)
           game.setPlayerTurn(p.place)
@@ -106,7 +106,7 @@ const socketHandler = (io: Server, socket: GameSocket): void => {
       const playerThatSwitched = game.getPlayer(socket.id)
       playerThatSwitched.shouldPlay = false //Temp don't allow player to play cards
       game.playerHasSwitched = socket.id // Store player to allow play later
-      game.getPlayerTeammate(playerThatSwitched.place).socket.emit("turnselect")
+      game.getPlayerTeammate(playerThatSwitched.place).socket.emit("turnselect", true)
     }
   })
   socket.on("wis", (playerId: string, cards: Card[], wisType: WisType) => {
@@ -142,7 +142,7 @@ const socketHandler = (io: Server, socket: GameSocket): void => {
           p.hand = hands[i]
           p.socket.emit("getCards", hands[i])
         })
-        winnerPlayer.socket.emit("turnselect")
+        winnerPlayer.socket.emit("turnselect", false)
       }
       io.to(socket.roomKey).emit("playerturn", winnerPlayer.place)
     }
