@@ -43,6 +43,7 @@ class Game {
   deck: Deck
   currentStich: Array<PlayedCard>
   stichCounter = 0
+  stoeckPlayer: string | undefined = undefined
   playerHasSwitched: string | undefined
   score: Score = { teamA: 0, teamB: 0 }
   roundScore: Score = { teamA: 0, teamB: 0 }
@@ -69,10 +70,14 @@ class Game {
     return deckFactory(type)
   }
   setRoundType(type: DeckType): void {
+    this.stoeckPlayer = undefined
     this.deck = this.createDeck(type)
     this.deck.buildDeck()
     //Do not hand out new card, but update existing val and score
     this.players.forEach(p => {
+      if (this.stoeckPlayer === undefined) {
+        this.setStoeckPlayer(p, type)
+      }
       p.hand.forEach(c => {
         const card = this.deck.getCardById(c.id)
         c.value = card.value
@@ -191,6 +196,37 @@ class Game {
       this.score.teamB = this.score.teamA + wisResult.amount
     }
     this.isGameFinished()
+  }
+  setStoeckPlayer(p: Player, type: DeckType): void {
+    if (type === DeckType.TRUMPF_CLUB) {
+      if (p.hand.find(c => c.display === "club_queen") && p.hand.find(c => c.display === "club_king")) {
+        this.stoeckPlayer = p.socket.id
+      }
+    } else if (type === DeckType.TRUMPF_DIAMOND) {
+      if (p.hand.find(c => c.display === "diamond_queen") && p.hand.find(c => c.display === "diamond_king")) {
+        this.stoeckPlayer = p.socket.id
+      }
+    } else if (type === DeckType.TRUMPF_HEART) {
+      if (p.hand.find(c => c.display === "heart_queen") && p.hand.find(c => c.display === "heart_king")) {
+        this.stoeckPlayer = p.socket.id
+      }
+    } else if (type === DeckType.TRUMPF_SPADE) {
+      if (p.hand.find(c => c.display === "spade_queen") && p.hand.find(c => c.display === "spade_king")) {
+        this.stoeckPlayer = p.socket.id
+      }
+    }
+  }
+  addStoeck(playerId: string): boolean {
+    if (this.stoeckPlayer === playerId) {
+      if (this.getPlayerTeam(this.getPlayer(playerId)) === Team.TeamA) {
+        this.score.teamA = this.score.teamA + 20
+      } else {
+        this.score.teamB = this.score.teamB + 20
+      }
+      this.isGameFinished()
+      return true
+    }
+    return false
   }
   playCard(cid: number, pid: string): void {
     //Remove played card from player hand

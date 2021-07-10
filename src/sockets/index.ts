@@ -115,6 +115,14 @@ const socketHandler = (io: Server, socket: GameSocket): void => {
       io.to(socket.roomKey).emit("wisdeclare", game.getWisInfo())
     }
   })
+  socket.on("stoeck", (playerId: string) => {
+    const game = GAMES.get(socket.roomKey)
+    const player = game.getPlayer(playerId)
+    if(!player.shouldPlay) return
+    if (game.addStoeck(playerId)) {
+      io.to(socket.roomKey).emit("stoeck", player.place)
+    }
+  })
   socket.on("cardPlayed", (id: number, playerId: string) => {
     const game = GAMES.get(socket.roomKey)
     const player = game.getPlayer(playerId)
@@ -125,6 +133,8 @@ const socketHandler = (io: Server, socket: GameSocket): void => {
     game.playCard(id, socket.id)
     const currentStich = game.getCurrentStich()
     io.to(socket.roomKey).emit("cards", game.getStichCardsAndPlace())
+    
+    // Play finished, move to next player or finish round
     if (currentStich.length < 4) {
       const place = player.place + 1 <= 3 ? player.place + 1 : 0
       game.setPlayerTurn(place)
