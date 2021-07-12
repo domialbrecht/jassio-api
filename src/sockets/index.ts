@@ -1,6 +1,6 @@
 import { Server, Socket } from "socket.io"
 import { Card, DeckType } from "../game/deck"
-import { WisType } from "../game/wise"
+import { WisType, WisDeclare } from "../game/wise"
 import { Game, GAMES } from "../game/game"
 
 interface GameSocket extends Socket {
@@ -109,10 +109,12 @@ const socketHandler = (io: Server, socket: GameSocket): void => {
       game.getPlayerTeammate(playerThatSwitched.place).socket.emit("turnselect", true)
     }
   })
-  socket.on("wis", (playerId: string, cards: Card[], wisType: WisType) => {
+  socket.on("wis", (playerId: string, declares: WisDeclare[]) => {
     const game = GAMES.get(socket.roomKey)
-    if(game.validWis(playerId, cards, wisType)) {
-      io.to(socket.roomKey).emit("wisdeclare", game.getWisInfo())
+    if (game.validWis(playerId, declares)) {
+      io.to(socket.roomKey).emit("wisdeclare", game.getDeclaredWise())
+    } else {
+      socket.emit("wisinvalid")
     }
   })
   socket.on("stoeck", (playerId: string) => {

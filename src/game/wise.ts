@@ -6,10 +6,16 @@ export enum WisType {
   SIMILAR = "similar",
 }
 
+export type WisDeclare = {
+  id: number
+  type: WisType
+  cards: Card[]
+}
+
 export type WisInfo = {
   playerId: string
   playerPlace: number
-  highestWisValue: number
+  wise: number[]
 }
 
 type WisEntry = {
@@ -31,34 +37,36 @@ abstract class Wis {
 
 class BlattWis extends Wis {
   numerateWis(): void {
+    //In BlattWis, value is always depending on highest value card
+    const sortedCards = this.cards.sort((c1, c2) => c1.value - c2.value)
     switch (this.cards.length) {
       case 3:
         this.score = 20
-        this.value = 10
+        this.value = sortedCards[sortedCards.length-1].value * 100
         break
       case 4:
         this.score = 50
-        this.value = 20
+        this.value = sortedCards[sortedCards.length - 1].value * 200
         break
       case 5:
         this.score = 100
-        this.value = 30
+        this.value = sortedCards[sortedCards.length - 1].value * 300
         break
       case 6:
         this.score = 150
-        this.value = 40
+        this.value = sortedCards[sortedCards.length - 1].value * 400
         break
       case 7:
         this.score = 200
-        this.value = 50
+        this.value = sortedCards[sortedCards.length - 1].value * 500
         break
       case 8:
         this.score = 250
-        this.value = 60
+        this.value = sortedCards[sortedCards.length - 1].value * 600
         break
       case 9:
         this.score = 300
-        this.value = 70
+        this.value = sortedCards[sortedCards.length - 1].value * 700
         break
       default:
         this.score = 0
@@ -103,28 +111,37 @@ class WisHandler {
   constructor() {
     this.playerWisList = new Map<string, WisEntry>()
   }
-  declareWis(playerId: string, team: Team, cards: Card[], wisType: WisType): boolean {
-    let cardsUnused = true
-    const playerWise = this.playerWisList.get(playerId) ? this.playerWisList.get(playerId).wise : undefined
-    if(playerWise) {
-      cardsUnused = playerWise.every(w => w.cards.every(c => cards.some(cf => cf.id == c.id) === false))
-    }
-    switch (wisType) {
-      case WisType.BLATT:
-        if (validateBlattWis(cards)) {
-          this.addWis(playerId, team, new BlattWis(cards))
-          return cardsUnused ? true : false
-        }
-        return false
-      case WisType.SIMILAR:
-        if (validateSimilarWis(cards)) {
-          this.addWis(playerId, team, new SimilarWis(cards))
-          return cardsUnused ? true : false
-        }
-        return false
-      default:
-        return false
-    }
+  declareWis(playerId: string, team: Team, declares: WisDeclare[]): boolean {
+    let wiseValid = false
+    
+    //Player can declare wise only once
+    if (this.playerWisList.get(playerId)) return false
+    
+    declares.forEach(wis => {
+      let cardsUnused = true
+      //If last wis in loop shared some cards, wis is invalid
+      const playerWise = this.playerWisList.get(playerId) ? this.playerWisList.get(playerId).wise : undefined
+      if (playerWise) {
+        cardsUnused = playerWise.every(w => w.cards.every(c => wis.cards.some(cf => cf.id == c.id) === false))
+      }
+      switch (wis.type) {
+        case WisType.BLATT:
+          if (validateBlattWis(wis.cards)) {
+            this.addWis(playerId, team, new BlattWis(wis.cards))
+            wiseValid = cardsUnused ? true : false
+          }
+          break
+        case WisType.SIMILAR:
+          if (validateSimilarWis(wis.cards)) {
+            this.addWis(playerId, team, new SimilarWis(wis.cards))
+            wiseValid = cardsUnused ? true : false
+          }
+          break
+        default:
+          break
+      }
+    })
+    return wiseValid
   }
   addWis(playerId: string, team: Team, wis: Wis): void {
     const wislit = this.playerWisList.get(playerId) ? this.playerWisList.get(playerId).wise : []
@@ -135,43 +152,57 @@ class WisHandler {
     const out: WisInfo[] = []
     this.playerWisList.forEach((value, key) => {
       const highestVal = value.wise.sort((a, b) => a.score - b.score)[value.wise.length - 1]
-      out.push({ playerId: key, playerPlace: 99, highestWisValue: highestVal.score })
+      out.push({ playerId: key, playerPlace: 99, wise: [ highestVal.score ] })
+    })
+    return out
+  }
+  getWinList(): WisInfo[] {
+    const out: WisInfo[] = []
+    this.playerWisList.forEach((value, key) => {
+      const wl = value.wise.map(w => w.score)
+      out.push({ playerId: key, playerPlace: 99, wise: wl })
     })
     return out
   }
   getWisWinScore(): { team: Team, amount: number } {
-    let v: number
+    let currentBestwis: Wis
     let id: string
     let score = 0
 
     //Get highest overall wis, store player id
     this.playerWisList.forEach((value, key) => {
-      const highestVal = value.wise.sort((a, b) => a.score - b.score)[value.wise.length - 1]
-      if (!v || highestVal.score > v) {
-        v = highestVal.score
+      const playersBestWis = value.wise.sort((a, b) => a.score - b.score)[value.wise.length - 1]
+      if (!currentBestwis || playersBestWis.score > currentBestwis.score) {
+        currentBestwis = playersBestWis
         id = key
+      } else if (playersBestWis.score === currentBestwis.score) {
+        if (playersBestWis.value > currentBestwis.value) {
+          currentBestwis = playersBestWis
+          id = key
+        }
       }
     })
 
     //Get winning team
     const winnerTeam = this.playerWisList.get(id).playerTeam
-    //Sumup winner player scores
-    this.playerWisList.get(id).wise.forEach((value) => {
-      score += value.score
-    })
     //Sumup teammate scores
     this.playerWisList.forEach((value, key) => {
-      if (key !== id && value.playerTeam === winnerTeam) {
+      if (value.playerTeam === winnerTeam) {
         value.wise.forEach((value) => {
           score += value.score
         })
+      } else {
+        //Remove wise from players of non-winning team
+        this.playerWisList.delete(key)
       }
     })
 
+    return { team: winnerTeam, amount: score }
+  }
+
+  clearWislist(): void {
     //Delete wise for next round
     this.playerWisList.clear()
-
-    return { team: winnerTeam, amount: score }
   }
 }
 

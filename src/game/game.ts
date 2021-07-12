@@ -1,6 +1,6 @@
 import { Socket, Server } from "socket.io"
 import { Card, Deck, DeckType, deckFactory } from "./deck"
-import { WisHandler, WisType, WisInfo } from "./wise"
+import { WisHandler, WisType, WisDeclare, WisInfo } from "./wise"
 import logger from "../util/logger"
 const GAMES: Map<string, Game> = new Map()
 
@@ -46,6 +46,7 @@ class Game {
   stoeckPlayer: string | undefined = undefined
   playerHasSwitched: string | undefined
   score: Score = { teamA: 0, teamB: 0 }
+  tempWisScore: Score = { teamA: 0, teamB: 0 }
   roundScore: Score = { teamA: 0, teamB: 0 }
   roundCounter: number
   constructor(key: string, host: Socket, io: Server) {
@@ -53,7 +54,7 @@ class Game {
     this.io = io
     this.players.set(host.id, { socket: host, hand: [], shouldPlay: false, place: 0 })
     this.wishander = new WisHandler()
-    this.settings = { winAmount: 1000, enableWise: false }
+    this.settings = { winAmount: 1000, enableWise: true }
     this.deck = this.createDeck(DeckType.UPDOWN) //Initial just for first play
     this.deck.buildDeck()
     this.playerHasSwitched = undefined
@@ -88,11 +89,25 @@ class Game {
   finishRound(): { nextPlayerId: string, roundFinished: boolean } {
     const nextRoundStartPlace = this.roundStartPlace + 1 > 3 ? 0 : this.roundStartPlace + 1
     this.roundCounter += 1
-    if (this.roundScore.teamA === 0) this.roundScore.teamB + 100
-    if (this.roundScore.teamB === 0) this.roundScore.teamA + 100
+    if (this.roundScore.teamA === 0) {
+      this.roundScore.teamB + 100
+    } else {
+      this.roundScore.teamA = this.roundScore.teamA + this.tempWisScore.teamA
+    }
+    if (this.roundScore.teamB === 0) {
+      this.roundScore.teamA + 100
+    } else {
+      this.roundScore.teamB = this.roundScore.teamB + this.tempWisScore.teamB
+    }
+
+
     this.score.teamA += this.roundScore.teamA
     this.score.teamB += this.roundScore.teamB
     this.roundScore = { teamA: 0, teamB: 0 }
+    this.tempWisScore = { teamA: 0, teamB: 0 }
+    this.io.to(this.roomKey).emit("cleartempwis")
+
+    this.isGameFinished()
 
     return { nextPlayerId: this.getPlayers().find(p => p.place === nextRoundStartPlace).socket.id, roundFinished: true }
   }
@@ -112,8 +127,8 @@ class Game {
   }
   isGameFinished(): void {
     let winTeam
-    if (this.score.teamA >= this.settings.winAmount) winTeam = Team.TeamA
-    else if (this.score.teamB >= this.settings.winAmount) winTeam = Team.TeamB
+    if (this.score.teamA + this.tempWisScore.teamA >= this.settings.winAmount) winTeam = Team.TeamA
+    else if (this.score.teamB + this.tempWisScore.teamB >= this.settings.winAmount) winTeam = Team.TeamB
     if (!winTeam) return
     else {
       //TODO: Store infos in DB
@@ -121,7 +136,7 @@ class Game {
     }
   }
   completeStich(): { nextPlayerId: string, roundFinished: boolean } {
-    if (this.stichCounter === 0 && this.settings.enableWise) {
+    if (this.stichCounter === 0) {
       this.finishWise()
     }
 
@@ -177,24 +192,39 @@ class Game {
     }
 
   }
-  getWisInfo(): WisInfo[] {
+  getDeclaredWise(): WisInfo[] {
     return this.wishander.getDeclareList().map(e => {
       e.playerPlace = this.getPlayer(e.playerId).place
       return e
     })
   }
-  validWis(playerId: string, cards: Card[], type: WisType): boolean {
-    if (!this.settings.enableWise) return false
+  validWis(playerId: string, declares: WisDeclare[]): boolean {
+    //if (!this.settings.enableWise) return false
     const team = this.getPlayerTeam(this.getPlayer(playerId))
-    return this.wishander.declareWis(playerId, team, cards, type)
+    return this.wishander.declareWis(playerId, team, declares)
   }
   finishWise(): void {
+    
+    //1. ATTENTION: This also removes wisInfo for all not winning players
     const wisResult = this.wishander.getWisWinScore()
+
+    //2. Send wis winlist to clients until next turn starts, for info
+    const winlist = this.wishander.getWinList().map(e => {
+      e.playerPlace = this.getPlayer(e.playerId).place
+      return e
+    })
+
+    //3. Clear rest of wise for next round
+    this.wishander.clearWislist()
+
     if (wisResult.team === Team.TeamA) {
-      this.score.teamA = this.score.teamA + wisResult.amount
+      this.tempWisScore.teamA = wisResult.amount
     } else {
-      this.score.teamB = this.score.teamA + wisResult.amount
+      this.tempWisScore.teamB = wisResult.amount
     }
+
+    this.io.to(this.roomKey).emit("wiswin", winlist, { teamA: this.tempWisScore.teamA, teamB: this.tempWisScore.teamB })
+    
     this.isGameFinished()
   }
   setStoeckPlayer(p: Player, type: DeckType): void {
