@@ -5,16 +5,9 @@ const options: winston.LoggerOptions = {
     new winston.transports.Console({
       level: process.env.NODE_ENV === "production" ? "error" : "debug"
     }),
-    new winston.transports.File({ filename: "storage/application.log" })
-  ],
-  format: winston.format.combine(
-    winston.format.timestamp({
-      format: "YYYY-MM-DD HH:mm:ss",
-    }),
-    winston.format.errors({ stack: true }),
-    winston.format.splat(),
-    winston.format.json()
-  ),
+    new winston.transports.File({ filename: "error.log", level: "error" }),
+    new winston.transports.File({ filename: "full.log", level: "debug" })
+  ]
 }
 
 const logger = winston.createLogger(options)
