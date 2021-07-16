@@ -1,5 +1,6 @@
 import express from "express"
 import exampleRouter from "./example.route"
+import statsRouter from "./stats.route"
 const router = express.Router()
 
 router.get("/", (req, res) => {
@@ -7,5 +8,6 @@ router.get("/", (req, res) => {
 })
 
 router.use("/example", exampleRouter)
+router.use("/stats", statsRouter)
 
 export default router

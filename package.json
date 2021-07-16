@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --pretty --transpile-only ./src/index.ts",
     "build": "tsc",
-    "postinstall": "tsc && mv -i -v public dist/ && mkdir dist/storage",
+    "postinstall": "tsc && cp -r public dist/ && cp -r storage dist/",
     "start": "node ./dist/index.js",
     "lint": "tsc --noEmit && eslint \"**/*.{js,ts}\" --quiet --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -15,6 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "2.27.0",
     "@sentry/node": "^6.9.0",
     "@sentry/tracing": "^6.9.0",
     "@socket.io/admin-ui": "^0.0.1",
@@ -49,6 +50,7 @@
     "@typescript-eslint/eslint-plugin": "^4.26.0",
     "@typescript-eslint/parser": "^4.26.0",
     "eslint": "^7.28.0",
+    "prisma": "2.27.0",
     "ts-node-dev": "^1.1.6",
     "typescript": "^4.2.4"
   }
