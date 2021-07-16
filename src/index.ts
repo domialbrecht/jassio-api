@@ -44,11 +44,9 @@ instrument(io, {
 
 setupGameserver(io)
 
-
-if (isProduction) {
-  app.use(favicon(__dirname + "/public/images/favicon.ico"))
-  app.use(express.static(__dirname + "public"))
-}
+const outDir = isProduction ? __dirname : __dirname + "/../"
+app.use(favicon(outDir + "/public/images/favicon.ico"))
+app.use(express.static(outDir + "public"))
 
 
 //---------------------------------------------
