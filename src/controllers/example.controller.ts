@@ -1,7 +1,7 @@
 import { Request, Response } from "express"
 
 export const getAll = (req: Request, res: Response) => {
-  //Enable for cache testing
-  /*const res = await <MODEL>.findAll({});*/
+  //Router for testing sentry error
+  throw new Error("My first Sentry error!")
   res.status(200)
 }

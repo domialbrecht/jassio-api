@@ -17,6 +17,13 @@ import setupGameserver from "./game"
 
 const isProduction = config.ENV === "production"
 const app = express()
+
+Sentry.init({
+  dsn: "https://82e31ebe7d154ae7a3fbfc1506278561@o921723.ingest.sentry.io/5868374",
+  tracesSampleRate: 0.1,
+})
+app.use(Sentry.Handlers.requestHandler())
+
 const server = createServer(app)
 const io = new Server(server, {
   cors: {
@@ -34,16 +41,7 @@ instrument(io, {
     password: "$2b$10$PUWdnyYx23kZfn.pVJdGyuHD0ZkjaDTM3aszeDY3tQBw8VgGFgCrC"
   }
 })
-Sentry.init({
-  dsn: "https://82e31ebe7d154ae7a3fbfc1506278561@o921723.ingest.sentry.io/5868374",
-  tracesSampleRate: 0.1,
-})
-const transaction = Sentry.startTransaction({
-  op: "test",
-  name: "My First Test Transaction",
-})
 
-transaction.finish()
 setupGameserver(io)
 
 
@@ -60,11 +58,15 @@ import router from "./routes"
 app.use(router)
 //---------------------------------------------
 
-// development error handler
-// will print stacktrace
-if (!isProduction) {
-  app.use(errorHandler())
-}
+//Sentry errror handler
+app.use(Sentry.Handlers.errorHandler())
+
+app.use(function onError(_err: any, _req: any, res: any, _next: any) {
+  // The error id is attached to `res.sentry` to be returned
+  // and optionally displayed to the user for support.
+  res.statusCode = 500
+  res.end(res.sentry + "\n")
+})
 
 // Start APP
 server.listen(config.PORT, () => logger.log("info", `Running, Listening on ${config.PORT}`))

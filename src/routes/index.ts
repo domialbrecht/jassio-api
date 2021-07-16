@@ -3,7 +3,7 @@ import exampleRouter from "./example.route"
 const router = express.Router()
 
 router.get("/", (req, res) => {
-  res.send("Hello, from example api. Have a good day!")
+  res.end("Hello, from example api. Have a good day!")
 })
 
 router.use("/example", exampleRouter)
