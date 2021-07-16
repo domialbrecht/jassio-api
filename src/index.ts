@@ -7,6 +7,9 @@ import errorHandler from "errorhandler"
 import { instrument } from "@socket.io/admin-ui"
 import { Server } from "socket.io"
 
+import * as Sentry from "@sentry/node"
+import * as Tracing from "@sentry/tracing"
+
 import logger from "./util/logger"
 import config from "./config"
 import setupGameserver from "./game"
@@ -31,7 +34,16 @@ instrument(io, {
     password: "$2b$10$PUWdnyYx23kZfn.pVJdGyuHD0ZkjaDTM3aszeDY3tQBw8VgGFgCrC"
   }
 })
+Sentry.init({
+  dsn: "https://82e31ebe7d154ae7a3fbfc1506278561@o921723.ingest.sentry.io/5868374",
+  tracesSampleRate: 0.1,
+})
+const transaction = Sentry.startTransaction({
+  op: "test",
+  name: "My First Test Transaction",
+})
 
+transaction.finish()
 setupGameserver(io)
 
 
