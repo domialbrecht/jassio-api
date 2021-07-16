@@ -25,7 +25,11 @@ const io = new Server(server, {
   },
 })
 instrument(io, {
-  auth: false
+  auth: {
+    type: "basic",
+    username: "jassio_socketadmin",
+    password: "$2b$10$PUWdnyYx23kZfn.pVJdGyuHD0ZkjaDTM3aszeDY3tQBw8VgGFgCrC"
+  }
 })
 
 setupGameserver(io)
