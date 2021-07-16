@@ -207,6 +207,7 @@ class Game {
     
     //1. ATTENTION: This also removes wisInfo for all not winning players
     const wisResult = this.wishander.getWisWinScore()
+    if(!wisResult) return
 
     //2. Send wis winlist to clients until next turn starts, for info
     const winlist = this.wishander.getWinList().map(e => {

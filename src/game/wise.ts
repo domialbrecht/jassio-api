@@ -42,7 +42,7 @@ class BlattWis extends Wis {
     switch (this.cards.length) {
       case 3:
         this.score = 20
-        this.value = sortedCards[sortedCards.length-1].value * 100
+        this.value = sortedCards[sortedCards.length - 1].value * 100
         break
       case 4:
         this.score = 50
@@ -113,10 +113,10 @@ class WisHandler {
   }
   declareWis(playerId: string, team: Team, declares: WisDeclare[]): boolean {
     let wiseValid = false
-    
+
     //Player can declare wise only once
     if (this.playerWisList.get(playerId)) return false
-    
+
     declares.forEach(wis => {
       let cardsUnused = true
       //If last wis in loop shared some cards, wis is invalid
@@ -152,7 +152,7 @@ class WisHandler {
     const out: WisInfo[] = []
     this.playerWisList.forEach((value, key) => {
       const highestVal = value.wise.sort((a, b) => a.score - b.score)[value.wise.length - 1]
-      out.push({ playerId: key, playerPlace: 99, wise: [ highestVal.score ] })
+      out.push({ playerId: key, playerPlace: 99, wise: [highestVal.score] })
     })
     return out
   }
@@ -164,10 +164,12 @@ class WisHandler {
     })
     return out
   }
-  getWisWinScore(): { team: Team, amount: number } {
+  getWisWinScore(): { team: Team, amount: number } | undefined {
     let currentBestwis: Wis
     let id: string
     let score = 0
+
+    if (this.playerWisList.size <= 0) return undefined
 
     //Get highest overall wis, store player id
     this.playerWisList.forEach((value, key) => {
