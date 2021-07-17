@@ -16,8 +16,9 @@ model Game {
 }
 
 model User {
-  id   Int     @id @default(autoincrement())
-  name String?
+  email String   @unique
+  name  String?
+  password  String
 }
 
 model Wis {
