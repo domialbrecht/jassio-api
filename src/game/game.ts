@@ -1,6 +1,7 @@
 import { Socket, Server } from "socket.io"
 import { Card, Deck, DeckType, deckFactory } from "./deck"
-import { WisHandler, WisType, WisDeclare, WisInfo } from "./wise"
+import { WisHandler, WisDeclare, WisInfo } from "./wise"
+import prisma from "../client"
 import logger from "../util/logger"
 const GAMES: Map<string, Game> = new Map()
 
@@ -54,7 +55,7 @@ class Game {
     this.io = io
     this.players.set(host.id, { socket: host, hand: [], shouldPlay: false, place: 0 })
     this.wishander = new WisHandler()
-    this.settings = { winAmount: 1000, enableWise: true }
+    this.settings = { winAmount: 200, enableWise: true }
     this.deck = this.createDeck(DeckType.UPDOWN) //Initial just for first play
     this.deck.buildDeck()
     this.playerHasSwitched = undefined
@@ -131,7 +132,10 @@ class Game {
     else if (this.score.teamB + this.tempWisScore.teamB >= this.settings.winAmount) winTeam = Team.TeamB
     if (!winTeam) return
     else {
-      //TODO: Store infos in DB
+      //TODO: Store more infos for game
+      prisma.game.create({data: {
+        roomkey: this.roomKey
+      }})
       this.io.to(this.roomKey).emit("win", winTeam)
     }
   }
@@ -199,15 +203,15 @@ class Game {
     })
   }
   validWis(playerId: string, declares: WisDeclare[]): boolean {
-    //if (!this.settings.enableWise) return false
+    if (!this.settings.enableWise) return false
     const team = this.getPlayerTeam(this.getPlayer(playerId))
     return this.wishander.declareWis(playerId, team, declares)
   }
   finishWise(): void {
-    
+
     //1. ATTENTION: This also removes wisInfo for all not winning players
     const wisResult = this.wishander.getWisWinScore()
-    if(!wisResult) return
+    if (!wisResult) return
 
     //2. Send wis winlist to clients until next turn starts, for info
     const winlist = this.wishander.getWinList().map(e => {
@@ -225,7 +229,7 @@ class Game {
     }
 
     this.io.to(this.roomKey).emit("wiswin", winlist, { teamA: this.tempWisScore.teamA, teamB: this.tempWisScore.teamB })
-    
+
     this.isGameFinished()
   }
   setStoeckPlayer(p: Player, type: DeckType): void {
