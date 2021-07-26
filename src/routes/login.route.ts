@@ -5,12 +5,28 @@ const loginRouter = express.Router()
 
 loginRouter.post(
   "/signup",
-  passport.authenticate("signup", { session: false }),
   async (req, res, next) => {
-    res.json({
-      message: "Signup successful",
-      user: req.user
-    })
+    passport.authenticate("signup", { session: false }, async (err, user) => {
+      if (err) {
+        return next(err)
+      }
+      if (!user) {
+        return res.status(400).json({
+          message: "Something is not right",
+          user: user
+        })
+      }
+      req.login(
+        user,
+        { session: false },
+        async (error) => {
+          if (error) return next(error)
+          const body = { email: user.email }
+          const token = jwt.sign({ user: body }, process.env.TOKEN_SECRET, { expiresIn: "1d" })
+          return res.json({ token })
+        }
+      )
+    })(req, res, next)
   }
 )
 
@@ -21,9 +37,14 @@ loginRouter.post(
       "login",
       async (err, user, info) => {
         try {
-          if (err || !user) {
-            const error = new Error("An error occurred.")
-            return next(error)
+          if (err) {
+            return next(err)
+          }
+          if (!user) {
+            return res.status(400).json({
+              message: "Something is not right",
+              user: user
+            })
           }
 
           req.login(
@@ -32,7 +53,7 @@ loginRouter.post(
             async (error) => {
               if (error) return next(error)
               const body = { email: user.email }
-              const token = jwt.sign({ user: body }, process.env.TOKEN_SECRET)
+              const token = jwt.sign({ user: body }, process.env.TOKEN_SECRET, { expiresIn: "1d" })
               return res.json({ token })
             }
           )

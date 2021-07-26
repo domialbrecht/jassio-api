@@ -28,6 +28,8 @@ passport.use(
     },
     async (email, password, done) => {
       try {
+        const hasUser = await prisma.user.findUnique({ where: { email: email } })
+        if (hasUser) return done(null, false, { message: "User already exists." })
         const hashPwd = await hashPassword(password)
         const user = await prisma.user.create({
           data: {

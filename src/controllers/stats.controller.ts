@@ -8,5 +8,8 @@ export const getAll = async (_req: Request, res: Response) => {
 
 export const getGames = async (_req: Request, res: Response) => {
   const games = await prisma.game.findMany()
-  res.json(games)
+  const gameInfo = {
+    "amount": games.length
+  }
+  res.json(gameInfo)
 }

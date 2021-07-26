@@ -2,6 +2,7 @@ import * as dotenv from "dotenv"
 dotenv.config()
 import express from "express"
 import { createServer } from "http"
+import cors from "cors"
 import favicon from "serve-favicon"
 import { instrument } from "@socket.io/admin-ui"
 import { Server } from "socket.io"
@@ -12,9 +13,17 @@ import logger from "./util/logger"
 import config from "./config"
 import setupGameserver from "./game"
 
+const CORS = {
+  origin: [
+    "https://admin.socket.io",
+    "http://localhost:3333",
+    "https://sirfilior.com",
+  ],
+}
 
 const isProduction = config.ENV === "production"
 const app = express()
+app.use(cors(CORS))
 
 Sentry.init({
   dsn: "https://82e31ebe7d154ae7a3fbfc1506278561@o921723.ingest.sentry.io/5868374",
@@ -27,13 +36,7 @@ app.use(express.urlencoded({ extended: false }))
 
 const server = createServer(app)
 const io = new Server(server, {
-  cors: {
-    origin: [
-      "https://admin.socket.io",
-      "http://localhost:3333",
-      "https://sirfilior.com",
-    ],
-  },
+  cors: CORS,
 })
 instrument(io, {
   auth: {
