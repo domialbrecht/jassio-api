@@ -23,7 +23,7 @@ loginRouter.post(
           if (error) return next(error)
           const body = { email: user.email }
           const token = jwt.sign({ user: body }, process.env.TOKEN_SECRET, { expiresIn: "1d" })
-          return res.json({ token })
+          return res.json({ email: user.email, access_token: token })
         }
       )
     })(req, res, next)
@@ -54,7 +54,7 @@ loginRouter.post(
               if (error) return next(error)
               const body = { email: user.email }
               const token = jwt.sign({ user: body }, process.env.TOKEN_SECRET, { expiresIn: "1d" })
-              return res.json({ token })
+              return res.json({ email: user.email, access_token: token })
             }
           )
         } catch (error) {
