@@ -17,7 +17,7 @@ const CORS = {
   origin: [
     "https://admin.socket.io",
     "http://localhost:3333",
-    "https://sirfilior.com",
+    "https://jasse.io",
   ],
 }
 
