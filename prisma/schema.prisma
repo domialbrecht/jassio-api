@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -13,6 +13,10 @@ generator client {
 model Game {
   id      Int    @id @default(autoincrement())
   roomkey String @unique
+  ScoreA Int
+  ScoreB Int
+  TeamA String
+  TeamB String
 }
 
 model User {

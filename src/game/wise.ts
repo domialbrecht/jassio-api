@@ -77,7 +77,6 @@ class BlattWis extends Wis {
 
 }
 function validateBlattWis(cards: Card[]) {
-  return true
   return cards.sort((c1, c2) => c1.id - c2.id)
     .every((card, i) => i === 0 || cards[i - 1].id + 1 === card.id)
 }

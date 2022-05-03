@@ -91,12 +91,12 @@ class Game {
     const nextRoundStartPlace = this.roundStartPlace + 1 > 3 ? 0 : this.roundStartPlace + 1
     this.roundCounter += 1
     if (this.roundScore.teamA === 0) {
-      this.roundScore.teamB + 100
+      this.roundScore.teamB += 100
     } else {
       this.roundScore.teamA = this.roundScore.teamA + this.tempWisScore.teamA
     }
     if (this.roundScore.teamB === 0) {
-      this.roundScore.teamA + 100
+      this.roundScore.teamA += 100
     } else {
       this.roundScore.teamB = this.roundScore.teamB + this.tempWisScore.teamB
     }
@@ -132,10 +132,15 @@ class Game {
     else if (this.score.teamB + this.tempWisScore.teamB >= this.settings.winAmount) winTeam = Team.TeamB
     if (!winTeam) return
     else {
-      //TODO: Store more infos for game
-      prisma.game.create({data: {
-        roomkey: this.roomKey
-      }})
+      prisma.game.create({
+        data: {
+          roomkey: this.roomKey,
+          ScoreA: this.score.teamA + this.tempWisScore.teamA,
+          ScoreB: this.score.teamB + this.tempWisScore.teamB,
+          TeamA: "Team A", //TODO: Get team name
+          TeamB: "Team B"//TODO: Get team name
+        }
+      })
       this.io.to(this.roomKey).emit("win", winTeam)
     }
   }
